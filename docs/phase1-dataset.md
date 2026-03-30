@@ -1,6 +1,6 @@
 # 第一阶段：数据集准备模块说明
 
-**对应脚本**：`tools/prepare_dataset.py`  
+**对应脚本**：`scripts/prepare_dataset.py`  
 **Makefile 入口**：`make prepare-dataset`
 
 ---
@@ -141,5 +141,5 @@ def build_split(lfw_dir: Path, min_images: int = 2) -> dict:
 make prepare-dataset
 
 # 或手动指定（当前版本路径硬编码，如需修改请直接编辑脚本）
-uv run python tools/prepare_dataset.py
+uv run python scripts/prepare_dataset.py
 ```

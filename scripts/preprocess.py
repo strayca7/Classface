@@ -1,7 +1,7 @@
 """图像预处理：光照归一化 + 人脸对齐 + 统一裁剪至 112x112。
 
 用法：
-    uv run python tools/preprocess.py [--src data/raw/lfw] [--dst data/processed/lfw]
+    uv run python scripts/preprocess.py [--src data/raw/lfw] [--dst data/processed/lfw]
 
 关键点检测策略（按优先级降级）：
   1. MediaPipe Tasks FaceLandmarker（0.10.x 新 API，需模型文件）

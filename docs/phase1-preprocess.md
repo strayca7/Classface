@@ -1,6 +1,6 @@
 # 第一阶段：图像预处理模块说明
 
-**对应脚本**：`tools/preprocess.py`  
+**对应脚本**：`scripts/preprocess.py`  
 **Makefile 入口**：`make preprocess`
 
 ---
@@ -154,5 +154,5 @@ def process_image(src_path):
 make preprocess
 
 # 自定义路径
-uv run python tools/preprocess.py --src data/raw/lfw --dst data/processed/lfw
+uv run python scripts/preprocess.py --src data/raw/lfw --dst data/processed/lfw
 ```

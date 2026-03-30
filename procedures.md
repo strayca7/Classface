@@ -60,7 +60,7 @@
     - 筛选出 ≥2 张图像的身份（共约 1,680 位），生成 `data/raw/lfw_filtered.json`（身份 → 图像路径列表）
     - gallery/query 分割：每位身份取第 1 张为 gallery，其余为 query
 
-- [ ] **实现光照归一化**（`tools/preprocess.py`）
+- [ ] **实现光照归一化**（`scripts/preprocess.py`）
     - 转换至 YCrCb：`cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)`
     - 对 Y 通道执行 `cv2.equalizeHist`，保留色彩信息后转回 BGR
     - 处理教室复杂光照（顶灯、侧光、逆光场景）
@@ -78,7 +78,7 @@
 
 - [ ] **工程规范**
     - 日志：记录每张图像的对齐旋转角度、均衡化前后直方图均值；格式 `%(asctime)s [%(levelname)s] %(name)s: %(message)s`
-    - Makefile：`preprocess` → `uv run python tools/preprocess.py`
+    - Makefile：`preprocess` → `uv run python scripts/preprocess.py`
     - 提交：`feat(preprocess): add histogram equalization and face alignment`
 
 ---
@@ -91,12 +91,12 @@
 
 ### 步骤
 
-- [ ] **初始化 InsightFace 模型**（`tools/recognize.py`）
+- [ ] **初始化 InsightFace 模型**（`scripts/recognize.py`）
     - `app = insightface.app.FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider'])`
     - `app.prepare(ctx_id=0, det_size=(112, 112))`
     - 对单张图像调用 `app.get(img)` 提取 512 维 `embedding`
 
-- [ ] **预计算并缓存 gallery 特征**（`tools/build_gallery.py`）
+- [ ] **预计算并缓存 gallery 特征**（`scripts/build_gallery.py`）
     - 遍历 `data/processed/lfw/` 中每位身份的 gallery 图像（第 1 张）
     - 提取 512 维特征向量，堆叠为矩阵 `(N, 512)`
     - 保存：`data/features/gallery.npy`（特征矩阵）、`data/features/gallery_labels.json`（身份标签列表）
@@ -109,14 +109,14 @@
     pred_id = gallery_labels[np.argmax(scores)]
     ```
 
-- [ ] **编写基线评估脚本**（`tools/evaluate.py`）
+- [ ] **编写基线评估脚本**（`scripts/evaluate.py`）
     - 遍历 `data/processed/lfw/` 中所有 query 图像（每位身份第 2 张起）
     - 计算 Top-1 准确率，输出至 `data/results/baseline_accuracy.txt`
     - 预期基线准确率（干净数据）> 95%
 
 - [ ] **工程规范**
     - 日志：记录每次比对的最高得分、预测身份与真实身份（是否匹配）
-    - Makefile：`build-gallery` → `uv run python tools/build_gallery.py`；`eval-baseline` → `uv run python tools/evaluate.py --mode baseline`
+    - Makefile：`build-gallery` → `uv run python scripts/build_gallery.py`；`eval-baseline` → `uv run python scripts/evaluate.py --mode baseline`
     - 提交：`feat(recognize): add baseline recognition system with gallery caching`
 
 ---
@@ -133,7 +133,7 @@
     - 收集 ≥3 类带 Alpha 通道的 PNG 贴图：水杯（`cup_01.png`）、托腮手（`hand_01.png`）、书本（`book_01.png`），存入 `data/overlays/`
     - 每类至少 2~3 个变体，增加多样性
 
-- [ ] **实现关键点定位**（`tools/generate_cover.py`）
+- [ ] **实现关键点定位**（`scripts/generate_cover.py`）
     - 使用 `mediapipe.solutions.face_mesh` 获取面部关键点
     - 遮挡锚点：嘴部 #13/#14（水杯/书本）、下巴 #152（手托腮）
 
@@ -150,7 +150,7 @@
 
 - [ ] **工程规范**
     - 日志：记录每张图像的遮挡类型、贴图锚点坐标、缩放比例
-    - Makefile：`generate` → `uv run python tools/generate_cover.py`
+    - Makefile：`generate` → `uv run python scripts/generate_cover.py`
     - 提交：`feat(data): add classroom occlusion synthesis pipeline`
 
 ---
@@ -165,7 +165,7 @@
 
 #### 4.1 动态局部裁剪
 
-- [ ] **计算眼周黄金区域**（`tools/crop.py`）
+- [ ] **计算眼周黄金区域**（`scripts/crop.py`）
     - 上边界：眉毛上方关键点 #70（左）/ #105（右），留 10px 余量
     - 下边界：鼻梁中部关键点 #6，留 5px 余量
     - 左右边界：脸部轮廓关键点 #234（左）/ #454（右）
@@ -182,7 +182,7 @@
 
 #### 4.2 两级级联识别
 
-- [ ] **实现两级级联逻辑**（`tools/recognize.py`）
+- [ ] **实现两级级联逻辑**（`scripts/recognize.py`）
     - **Level 1（全局）**：完整对齐图像 → InsightFace 特征 → 与 `gallery.npy` 比对
         - 最高得分 > 0.8：直接输出身份
     - **Level 2（局部触发）**：得分 0.4~0.8 → 裁剪眼周区域 → 与 `gallery_cropped.npy` 二次比对，输出结果
@@ -190,7 +190,7 @@
 
 #### 4.3 对比实验
 
-- [ ] **编写三组对比测试**（`tools/evaluate.py --mode compare`）
+- [ ] **编写三组对比测试**（`scripts/evaluate.py --mode compare`）
     - **组 A（基线）**：干净 LFW query 图像 → 全脸识别（第二阶段结果，复用）
     - **组 B（遮挡 naive）**：合成遮挡图像 → 直接全脸识别（不使用任何遮挡策略）
     - **组 C（两级策略）**：合成遮挡图像 → 两级级联识别
@@ -202,5 +202,5 @@
 
 - [ ] **工程规范**
     - 日志：记录每次识别的触发级别（L1/L2）、得分、最终身份、耗时（ms）
-    - Makefile：`crop` → `uv run python tools/crop.py`；`recognize` → `uv run python tools/recognize.py`；`eval` → `uv run python tools/evaluate.py`
+    - Makefile：`crop` → `uv run python scripts/crop.py`；`recognize` → `uv run python scripts/recognize.py`；`eval` → `uv run python scripts/evaluate.py`
     - 提交：`feat(recognize): add two-stage cascade recognition with occlusion robustness`

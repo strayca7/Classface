@@ -95,10 +95,10 @@ dip/
 │   ├── features/         # InsightFace 特征向量缓存（.npy）
 │   ├── synthetic/        # 合成遮挡数据集
 │   └── results/          # 评估结果、对比图表
-├── doc/
+├── docs/
 │   ├── phase1-dataset.md     # 数据集准备模块说明
 │   └── phase1-preprocess.md  # 图像预处理模块说明
-├── tools/
+├── scripts/
 │   ├── prepare_dataset.py    # LFW 筛选与分割
 │   └── preprocess.py         # 图像预处理（均衡化+对齐+裁剪）
 ├── procedures.md     # 完整技术路线与实施步骤
@@ -121,10 +121,10 @@ dip/
 
 ## 文档
 
-每个阶段的模块说明和代码解释位于 `doc/` 目录：
+每个阶段的模块说明和代码解释位于 `docs/` 目录：
 
-- [`doc/phase1-dataset.md`](doc/phase1-dataset.md)：LFW 数据集准备与 gallery/query 分割
-- [`doc/phase1-preprocess.md`](doc/phase1-preprocess.md)：直方图均衡化、人脸对齐、裁剪策略
+- [`docs/phase1-dataset.md`](docs/phase1-dataset.md)：LFW 数据集准备与 gallery/query 分割
+- [`docs/phase1-preprocess.md`](docs/phase1-preprocess.md)：直方图均衡化、人脸对齐、裁剪策略
 
 ---
 

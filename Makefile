@@ -7,7 +7,7 @@ LFW_ARCHIVE := data/raw/lfw-funneled.tgz
 ## setup: 创建项目所需目录结构
 setup:
 	mkdir -p data/raw/lfw data/processed/lfw data/overlays \
-	          data/features data/results/figures tools
+	          data/features data/results/figures scripts
 
 ## download-lfw: 下载 LFW-funneled 数据集并解压至 data/raw/lfw/
 download-lfw:
@@ -20,17 +20,17 @@ download-lfw:
 
 ## prepare-dataset: 筛选 ≥2 张图像的身份，生成 gallery/query 分割清单
 prepare-dataset:
-	$(PYTHON) tools/prepare_dataset.py
+	$(PYTHON) scripts/prepare_dataset.py
 
 ## preprocess: 批量预处理 LFW → data/processed/lfw/
 preprocess:
-	$(PYTHON) tools/preprocess.py --src data/raw/lfw --dst data/processed/lfw
+	$(PYTHON) scripts/preprocess.py --src data/raw/lfw --dst data/processed/lfw
 
 ## cover: 生成遮挡合成样例图 → data/output/
 cover:
 	@mkdir -p data/output
 	@rm -f data/output/*.jpg
-	$(PYTHON) tools/generate_cover.py $(ARGS)
+	$(PYTHON) scripts/generate_cover.py $(ARGS)
 
 ## clean: 清除所有生成产物
 clean:
