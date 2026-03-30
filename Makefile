@@ -1,5 +1,5 @@
 PYTHON := uv run python
-LFW_URL := https://vis-www.cs.umass.edu/lfw/lfw-funneled.tgz
+LFW_URL := https://ndownloader.figshare.com/files/5976015
 LFW_ARCHIVE := data/raw/lfw-funneled.tgz
 
 .PHONY: setup download-lfw prepare-dataset preprocess cover clean
