@@ -1,0 +1,19 @@
+[project]
+name = "dip"
+version = "0.1.0"
+description = "遮挡人脸识别 — 数字图像处理课设"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "insightface>=0.7.3",
+    "matplotlib>=3.9.0",
+    "mediapipe>=0.10.0",
+    "numpy>=2.4.3",
+    "opencv-python>=4.13.0.92",
+    "onnxruntime>=1.19.0",
+    "pillow>=12.1.1",
+    "rembg[cpu]>=2.0.73",
+]
+
+[project.scripts]
+dip-generate = "dip.generate:main"
