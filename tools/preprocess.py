@@ -69,7 +69,9 @@ def get_eye_centers(img_rgb: np.ndarray) -> tuple[tuple[float, float], tuple[flo
     return left, right
 
 
-def align_face(img: np.ndarray, left_eye: tuple, right_eye: tuple) -> np.ndarray:
+def align_face(
+    img: np.ndarray, left_eye: tuple, right_eye: tuple
+) -> tuple[np.ndarray, float, tuple[float, float]]:
     """根据双眼中心仿射旋转人脸至水平，以双眼中心为旋转中心。"""
     dx = right_eye[0] - left_eye[0]
     dy = right_eye[1] - left_eye[1]

@@ -21,7 +21,11 @@ MIN_IMAGES = 2
 
 
 def build_split(lfw_dir: Path, min_images: int) -> dict:
-    """扫描 LFW 目录，过滤出图像数 >= min_images 的身份，并做 gallery/query 分割。"""
+    """扫描 LFW 目录，过滤出图像数 >= min_images 的身份，并做 gallery/query 分割。
+
+    JSON 中的路径均相对于 lfw_dir（例如 "Alice/Alice_0001.jpg"）。
+    使用时通过 lfw_dir / path 还原完整路径。
+    """
     split: dict[str, dict[str, list[str]]] = {}
 
     identities = sorted(p for p in lfw_dir.iterdir() if p.is_dir())
@@ -32,7 +36,8 @@ def build_split(lfw_dir: Path, min_images: int) -> dict:
         images = sorted(person_dir.glob("*.jpg"))
         if len(images) < min_images:
             continue
-        rel_images = [str(img.relative_to(Path("."))) for img in images]
+        # 存储相对于 lfw_dir 的路径，方便在不同环境下复用 JSON
+        rel_images = [str(img.relative_to(lfw_dir)) for img in images]
         split[person_dir.name] = {
             "gallery": rel_images[:1],
             "query": rel_images[1:],
