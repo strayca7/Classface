@@ -1,2 +1,35 @@
+# Python
 .venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# 数据集（原始图像、压缩包）
+data/raw/lfw/
+data/raw/lfw_funneled/
+data/raw/*.tgz
+data/raw/*.tar.gz
+data/raw/*.zip
+
+# 生成产物（预处理图像、合成数据、特征向量）
+data/processed/
+data/synthetic/
+data/features/
+data/cropped/
+
+# 结果与图表（可本地重现）
+data/results/
+
+# 贴图素材（二进制大文件，手动维护）
+data/overlays/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
 
