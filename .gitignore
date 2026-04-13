@@ -14,11 +14,12 @@ data/raw/*.tgz
 data/raw/*.tar.gz
 data/raw/*.zip
 
-# 生成产物（预处理图像、合成数据、特征向量）
+# 生成产物（预处理图像、合成数据、特征向量、分割掩膜）
 data/processed/
 data/synthetic/
 data/features/
 data/cropped/
+data/segmented/
 
 # 结果与图表（可本地重现）
 data/results/
