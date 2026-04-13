@@ -12,6 +12,7 @@ dependencies = [
     "opencv-python>=4.13.0.92",
     "onnxruntime>=1.19.0",
     "pillow>=12.1.1",
+    "scikit-learn>=1.6.0",
 ]
 
 # 本项目为脚本式课设项目，不作为可安装包发布
