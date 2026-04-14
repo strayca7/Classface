@@ -4,16 +4,17 @@
 
 | 类别 | 工具 / 库 | 用途 |
 |------|-----------|------|
-| 语言 | Python 3.11+ | 全栈 |
+| 语言 | Python 3.13+ | 全栈 |
 | 包管理 | `uv` | 依赖安装与脚本运行（`uv sync` / `uv run`） |
 | 图像处理 | `opencv-python` | 仿射变换、直方图均衡、掩膜融合、裁剪 |
 | 关键点检测 | `mediapipe` | 人脸 468 关键点（FaceMesh） |
 | 人脸识别模型 | `insightface`（ArcFace backbone） | 512 维特征向量提取（预训练，无需额外训练） |
+| 机器学习 | `scikit-learn` | GMM 肤色分割（`GaussianMixture`） |
 | 数值计算 | `numpy` | 向量化余弦相似度计算 |
 | 数据集 | LFW (Labeled Faces in the Wild) | 干净人脸数据，≥2 张图像的身份共 1,680 位 |
 | 可视化 | `matplotlib` | 准确率对比图表 |
 | 构建 | `Makefile` | 统一封装常用命令 |
-| 格式化 | `uv fmt` (ruff) | Python 代码格式化 |
+| 格式化 | `ruff` (via `uv tool run`) | Python 代码格式化 |
 
 ---
 
@@ -23,16 +24,21 @@
 【LFW 原始图像（干净人脸）】
     │
     ▼
-【第一阶段】预处理与人脸对齐
+【第一阶段】预处理与人脸对齐 ✅
     │  直方图均衡化（YCrCb/Y 通道）→ 双眼中心对齐（warpAffine）→ 统一 112×112
     ▼
-【第二阶段】基线识别系统验证（干净数据）
+【第二阶段】图像分割（传统机器学习方法）✅
+    │  肤色分割：YCrCb 阈值（Kovac 椭圆模型）+ GMM
+    │  前景分割：GrabCut + Watershed
+    │  方法对比：前景占比 YCrCb 51.5% / GMM 96.4% / GrabCut 23.6% / Watershed 35.0%
+    ▼
+【第三阶段】基线识别系统验证（干净数据）
     │  InsightFace 512-d 特征提取 → gallery 缓存 → 余弦相似度 → 基线 Top-1 准确率
     ▼
-【第三阶段】非标准遮挡数据合成
+【第四阶段】非标准遮挡数据合成
     │  MediaPipe 关键点定位 → 仿射变换贴图 → Alpha 掩膜融合 → 合成遮挡数据集
     ▼
-【第四阶段】遮挡鲁棒识别：动态局部裁剪 + 两级级联
+【第五阶段】遮挡鲁棒识别：动态局部裁剪 + 两级级联
        遮挡图像 → Level 1 全局比对
        ├─ 得分 > 0.8  → 直接输出身份
        ├─ 得分 0.4~0.8 → Level 2 裁剪眼周区域 → 二次比对，输出身份
@@ -42,7 +48,7 @@
 
 ---
 
-## 第一阶段：数据准备与图像预处理
+## 第一阶段：数据准备与图像预处理 ✅
 
 **目标**：搭建项目骨架，下载 LFW，对干净人脸执行标准预处理，输出统一格式的图像供后续所有阶段复用。
 
@@ -50,40 +56,81 @@
 
 ### 步骤
 
-- [ ] **搭建项目骨架**
+- [x] **搭建项目骨架**
     - 创建目录：`data/raw/lfw/`、`data/processed/`、`data/overlays/`、`data/features/`、`data/results/`
     - `pyproject.toml` 添加依赖：`opencv-python`、`mediapipe`、`insightface`、`numpy`、`matplotlib`、`Pillow`
     - 运行 `uv sync` 安装所有依赖
 
-- [ ] **下载并整理 LFW 数据集**
-    - 下载 LFW-funneled 版本，解压至 `data/raw/lfw/<person_name>/<image>.jpg`
-    - 筛选出 ≥2 张图像的身份（共约 1,680 位），生成 `data/raw/lfw_filtered.json`（身份 → 图像路径列表）
+- [x] **下载并整理 LFW 数据集**
+    - 下载 LFW-funneled 版本（232 MB），解压至 `data/raw/lfw/<person_name>/<image>.jpg`（5,749 个身份，13,233 张）
+    - 筛选出 ≥2 张图像的身份，生成 `data/raw/lfw_filtered.json`：**1,680 个身份**，gallery 1,680 张，query 7,484 张
     - gallery/query 分割：每位身份取第 1 张为 gallery，其余为 query
 
-- [ ] **实现光照归一化**（`scripts/preprocess.py`）
+- [x] **实现光照归一化**（`scripts/preprocess.py`）
     - 转换至 YCrCb：`cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)`
     - 对 Y 通道执行 `cv2.equalizeHist`，保留色彩信息后转回 BGR
-    - 处理教室复杂光照（顶灯、侧光、逆光场景）
 
-- [ ] **实现人脸对齐**
-    - MediaPipe FaceMesh 获取左眼中心（关键点 #33）、右眼中心（关键点 #263）
-    - 计算倾斜角：`angle = np.degrees(np.arctan2(dy, dx))`
-    - `cv2.getRotationMatrix2D(eye_center, angle, 1.0)` + `cv2.warpAffine` 旋转摆正至水平
+- [x] **实现人脸对齐**
+    - OpenCV Haar 级联检测双眼，计算倾斜角并用 `cv2.warpAffine` 旋转摆正
+    - 对齐率：46.6%（检测不到双眼时退化为中心裁剪）；对齐旋转角均值 4.0°
 
-- [ ] **统一输出尺寸**
-    - 以双眼中心为基准裁剪人脸区域，`cv2.resize` 至 112×112（与 InsightFace ArcFace 输入对齐）
+- [x] **统一输出尺寸**
+    - 以双眼中心为基准裁剪人脸区域，`cv2.resize` 至 112×112；全部 13,233 张成功，0 失败
 
-- [ ] **批量处理全量 LFW**
-    - 对所有筛选图像完成预处理，保存至 `data/processed/lfw/`，保持原目录结构
-
-- [ ] **工程规范**
-    - 日志：记录每张图像的对齐旋转角度、均衡化前后直方图均值；格式 `%(asctime)s [%(levelname)s] %(name)s: %(message)s`
+- [x] **工程规范**
+    - 日志格式：`%(asctime)s [%(levelname)s] %(name)s: %(message)s`
     - Makefile：`preprocess` → `uv run python scripts/preprocess.py`
     - 提交：`feat(preprocess): add histogram equalization and face alignment`
 
 ---
 
-## 第二阶段：基线识别系统验证（干净数据）
+## 第二阶段：图像分割（传统机器学习方法）✅
+
+**目标**：在预处理后的人脸图像上，用传统方法实现肤色分割与人脸前景分割，为后续遮挡鲁棒识别提供先验掩膜，并通过定量对比验证各方法效果。
+
+**核心 API**：`cv2.cvtColor`、`cv2.morphologyEx`、`cv2.grabCut`、`cv2.watershed`、`cv2.distanceTransform`、`sklearn.mixture.GaussianMixture`
+
+### 2a 肤色分割
+
+- [x] **实现 YCrCb 颜色阈值分割**（`scripts/segment_skin.py`）
+    - 转换至 YCrCb，应用 Kovac 经典椭圆模型：Cr ∈ [133, 173]、Cb ∈ [77, 127]
+    - 形态学后处理（开运算 + 闭运算）去除噪点
+    - 输出掩膜至 `data/segmented/skin_ycrcb/`；实测平均前景占比 **51.5%**
+
+- [x] **实现 GMM 肤色分割**（同脚本）
+    - 采样皮肤像素（图像中心 20×20）与背景像素（四角 10×10），共 ~400K 像素
+    - `sklearn.mixture.GaussianMixture(n_components=2, covariance_type='full', n_init=3)`
+    - 模型缓存至 `data/features/gmm_skin.pkl`，自动复用
+    - 输出掩膜至 `data/segmented/skin_gmm/`；实测平均前景占比 **96.4%**（人脸区域几乎全为皮肤）
+
+### 2b 人脸前景分割
+
+- [x] **实现 GrabCut 前景分割**（`scripts/segment_face.py`）
+    - 初始矩形 `rect=(10, 10, 92, 92)`（留 10px 余量），`iterCount=5`
+    - 提取 `GC_FGD | GC_PR_FGD` 前景掩膜
+    - 输出至 `data/segmented/grabcut/`；实测平均前景占比 **23.6%**
+
+- [x] **实现 Watershed 分割**（同脚本）
+    - 灰度化 → Otsu 阈值 → `cv2.distanceTransform` → 峰值标记 → `cv2.watershed`
+    - 输出前景掩膜至 `data/segmented/watershed/`；实测平均前景占比 **35.0%**
+
+### 2c 方法对比实验
+
+- [x] **编写对比可视化脚本**（`scripts/eval_segmentation.py`）
+    - 随机抽取 20 张图像，5 列并排（原图 | YCrCb | GMM | GrabCut | Watershed）
+    - 保存对比图至 `data/results/figures/segmentation_compare.png`（300 dpi）
+    - 统计结果输出至 `data/results/segmentation_stats.txt`
+
+### 工程规范
+
+- [x] **新增 Makefile 命令**：`segment-skin`、`segment-face`、`eval-seg`、`validate-seg`
+- [x] **验证脚本**（`scripts/validate_segmentation.py`）：6 项断言，验证通过 ✓
+- [x] **文档**：`docs/phase2-segmentation.md`
+- [x] **提交**：`feat(segment): add skin color and face foreground segmentation`
+
+---
+
+## 第三阶段：基线识别系统验证（干净数据）
 
 **目标**：在无遮挡的 LFW 预处理图像上，完整跑通特征提取 → gallery 建库 → 余弦相似度比对的识别链路，获得**基线 Top-1 准确率**，验证整条流水线的正确性。
 
@@ -121,7 +168,7 @@
 
 ---
 
-## 第三阶段：非标准遮挡数据合成
+## 第四阶段：非标准遮挡数据合成
 
 **目标**：在第一阶段预处理后的干净图像上，通过关键点定位 + 仿射变换 + Alpha 掩膜，自动合成课堂场景下的遮挡图像，构建专属测试集。
 
@@ -155,7 +202,7 @@
 
 ---
 
-## 第四阶段：遮挡鲁棒识别与对比实验
+## 第五阶段：遮挡鲁棒识别与对比实验
 
 **目标**：实现"动态局部裁剪 + 两级级联"识别策略，与基线对比，定量证明策略对遮挡场景的提升效果。
 
@@ -163,7 +210,7 @@
 
 ### 步骤
 
-#### 4.1 动态局部裁剪
+#### 5.1 动态局部裁剪
 
 - [ ] **计算眼周黄金区域**（`scripts/crop.py`）
     - 上边界：眉毛上方关键点 #70（左）/ #105（右），留 10px 余量
@@ -180,7 +227,7 @@
 - [ ] **可视化验证**
     - 随机抽取 10 组，`cv2.hconcat([orig, cropped])` 拼接，保存至 `data/cropped/vis/`
 
-#### 4.2 两级级联识别
+#### 5.2 两级级联识别
 
 - [ ] **实现两级级联逻辑**（`scripts/recognize.py`）
     - **Level 1（全局）**：完整对齐图像 → InsightFace 特征 → 与 `gallery.npy` 比对
@@ -188,10 +235,10 @@
     - **Level 2（局部触发）**：得分 0.4~0.8 → 裁剪眼周区域 → 与 `gallery_cropped.npy` 二次比对，输出结果
     - 得分 < 0.4：标记"无法识别"
 
-#### 4.3 对比实验
+#### 5.3 对比实验
 
 - [ ] **编写三组对比测试**（`scripts/evaluate.py --mode compare`）
-    - **组 A（基线）**：干净 LFW query 图像 → 全脸识别（第二阶段结果，复用）
+    - **组 A（基线）**：干净 LFW query 图像 → 全脸识别（第三阶段结果，复用）
     - **组 B（遮挡 naive）**：合成遮挡图像 → 直接全脸识别（不使用任何遮挡策略）
     - **组 C（两级策略）**：合成遮挡图像 → 两级级联识别
 
