@@ -32,8 +32,8 @@
     │  前景分割：GrabCut + Watershed
     │  方法对比：前景占比 YCrCb 51.5% / GMM 96.4% / GrabCut 23.6% / Watershed 35.0%
     ▼
-【第三阶段】基线识别系统验证（干净数据）
-    │  InsightFace 512-d 特征提取 → gallery 缓存 → 余弦相似度 → 基线 Top-1 准确率
+【第三阶段】基线识别系统验证（干净数据）✅
+    │  InsightFace 512-d 特征提取 → gallery 缓存 → 余弦相似度 → 基线 Top-1 = 97.04%
     ▼
 【第四阶段】非标准遮挡数据合成
     │  MediaPipe 关键点定位 → 仿射变换贴图 → Alpha 掩膜融合 → 合成遮挡数据集
@@ -130,7 +130,7 @@
 
 ---
 
-## 第三阶段：基线识别系统验证（干净数据）
+## 第三阶段：基线识别系统验证（干净数据）✅
 
 **目标**：在无遮挡的 LFW 预处理图像上，完整跑通特征提取 → gallery 建库 → 余弦相似度比对的识别链路，获得**基线 Top-1 准确率**，验证整条流水线的正确性。
 
@@ -138,33 +138,32 @@
 
 ### 步骤
 
-- [ ] **初始化 InsightFace 模型**（`scripts/recognize.py`）
-    - `app = insightface.app.FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider'])`
-    - `app.prepare(ctx_id=0, det_size=(112, 112))`
-    - 对单张图像调用 `app.get(img)` 提取 512 维 `embedding`
+- [x] **初始化 InsightFace 模型**（`scripts/build_gallery.py` / `scripts/evaluate.py`）
+    - `FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider'])`
+    - `app.prepare(ctx_id=0, det_size=(640, 640))`
+    - 输入图像先上采样至 320×320，确保检测器 anchor 正常计算
 
-- [ ] **预计算并缓存 gallery 特征**（`scripts/build_gallery.py`）
-    - 遍历 `data/processed/lfw/` 中每位身份的 gallery 图像（第 1 张）
-    - 提取 512 维特征向量，堆叠为矩阵 `(N, 512)`
-    - 保存：`data/features/gallery.npy`（特征矩阵）、`data/features/gallery_labels.json`（身份标签列表）
+- [x] **预计算并缓存 gallery 特征**（`scripts/build_gallery.py`）
+    - 遍历 1,680 个身份的 gallery 图像，提取 512-d ArcFace 嵌入
+    - 保存：`data/features/gallery.npy`（1680, 512）、`data/features/gallery_labels.json`
+    - 全量耗时 ~503s（CPU），0 失败
 
-- [ ] **实现向量化余弦相似度**
+- [x] **实现向量化余弦相似度**
     ```python
-    # 查询向量 q (512,)，底库矩阵 G (N, 512)
     G_norm = G / np.linalg.norm(G, axis=1, keepdims=True)
     scores = G_norm @ (q / np.linalg.norm(q))
     pred_id = gallery_labels[np.argmax(scores)]
     ```
 
-- [ ] **编写基线评估脚本**（`scripts/evaluate.py`）
-    - 遍历 `data/processed/lfw/` 中所有 query 图像（每位身份第 2 张起）
-    - 计算 Top-1 准确率，输出至 `data/results/baseline_accuracy.txt`
-    - 预期基线准确率（干净数据）> 95%
+- [x] **编写基线评估脚本**（`scripts/evaluate.py --mode baseline`）
+    - 遍历所有 query 图像（每位身份第 2 张起）
+    - 输出至 `data/results/baseline_accuracy.txt`
+    - 验证结果（50 身份抽样）：**Top-1 = 97.04%** > 95% ✓
 
-- [ ] **工程规范**
-    - 日志：记录每次比对的最高得分、预测身份与真实身份（是否匹配）
-    - Makefile：`build-gallery` → `uv run python scripts/build_gallery.py`；`eval-baseline` → `uv run python scripts/evaluate.py --mode baseline`
-    - 提交：`feat(recognize): add baseline recognition system with gallery caching`
+- [x] **工程规范**
+    - 日志：记录每次比对的最高得分、预测身份与真实身份
+    - Makefile：`build-gallery`、`eval-baseline`（支持 `ARGS="--limit N"` 调试）
+    - 提交：`feat(recognize): add baseline recognition with InsightFace gallery`
 
 ---
 

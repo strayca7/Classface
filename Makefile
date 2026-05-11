@@ -4,6 +4,9 @@ LFW_ARCHIVE := data/raw/lfw-funneled.tgz
 
 .PHONY: setup download-lfw prepare-dataset preprocess \
         segment-skin segment-face eval-seg validate-seg \
+        build-gallery eval-baseline \
+        gen-overlays generate \
+        crop eval-compare \
         cover clean
 
 ## setup: 创建项目所需目录结构
@@ -11,7 +14,9 @@ setup:
 	mkdir -p data/raw/lfw data/processed/lfw data/overlays \
 	          data/features data/results/figures scripts \
 	          data/segmented/skin_ycrcb data/segmented/skin_gmm \
-	          data/segmented/grabcut data/segmented/watershed
+	          data/segmented/grabcut data/segmented/watershed \
+	          data/synthetic/cup data/synthetic/hand data/synthetic/book \
+	          data/cropped/gallery data/cropped/query data/cropped/vis
 
 ## download-lfw: 下载 LFW-funneled 数据集并解压至 data/raw/lfw/
 download-lfw:
@@ -46,6 +51,30 @@ eval-seg:
 validate-seg:
 	$(PYTHON) scripts/validate_segmentation.py
 
+## build-gallery: 提取 gallery 身份特征，缓存至 data/features/
+build-gallery:
+	$(PYTHON) scripts/build_gallery.py $(ARGS)
+
+## eval-baseline: 在干净 LFW query 上评估 Top-1 基线准确率
+eval-baseline:
+	$(PYTHON) scripts/evaluate.py --mode baseline $(ARGS)
+
+## gen-overlays: 程序化生成 RGBA 遮挡素材 PNG → data/overlays/
+gen-overlays:
+	$(PYTHON) scripts/gen_overlays.py
+
+## generate: 合成课堂遮挡图像 → data/synthetic/{cup,hand,book}/
+generate:
+	$(PYTHON) scripts/generate_cover.py $(ARGS)
+
+## crop: 眼周区域裁剪，预计算 gallery_cropped.npy
+crop:
+	$(PYTHON) scripts/crop.py $(ARGS)
+
+## eval-compare: 三组对比实验（基线 / 遮挡naive / 两级级联）
+eval-compare:
+	$(PYTHON) scripts/evaluate.py --mode compare $(ARGS)
+
 ## cover: 生成遮挡合成样例图 → data/output/
 cover:
 	@mkdir -p data/output
@@ -54,4 +83,4 @@ cover:
 
 ## clean: 清除所有生成产物
 clean:
-	rm -rf data/output data/processed data/features data/results data/synthetic data/segmented
+	rm -rf data/output data/processed data/features data/results data/synthetic data/segmented data/cropped
