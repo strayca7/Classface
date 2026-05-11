@@ -25,7 +25,7 @@ data/segmented/
 data/results/
 
 # 贴图素材（二进制大文件，手动维护）
-data/overlays/
+# data/overlays/ 已纳入 git 管理（资产文件，随代码一起提交）
 
 # 系统与编辑器
 .DS_Store

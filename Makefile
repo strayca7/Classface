@@ -59,11 +59,11 @@ build-gallery:
 eval-baseline:
 	$(PYTHON) scripts/evaluate.py --mode baseline $(ARGS)
 
-## gen-overlays: 程序化生成 RGBA 遮挡素材 PNG → data/overlays/
+## gen-overlays: （已废弃）overlays 现由 data/overlays/ 中的真实图片资产提供，无需生成
 gen-overlays:
-	$(PYTHON) scripts/gen_overlays.py
+	@echo "overlays are now managed as git assets in data/overlays/ — nothing to generate."
 
-## generate: 合成课堂遮挡图像 → data/synthetic/{cup,hand,book}/
+## generate: 合成遮挡图像 → data/synthetic/{cup,glasses,sunglasses}/
 generate:
 	$(PYTHON) scripts/generate_cover.py $(ARGS)
 

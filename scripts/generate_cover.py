@@ -3,14 +3,17 @@
 Uses InsightFace 5-kps (left-eye, right-eye, nose, mouth-left, mouth-right)
 and bounding box to anchor three occlusion types:
 
-  cup   – overlay centred at mouth midpoint, scaled to face width × 0.7
-  hand  – overlay centred between mouth and bbox bottom (chin area)
-  book  – solid rectangle covering lower 45% of face (from nose-level to bbox bottom)
+  cup        – overlay centred at mouth midpoint, scaled to face width × 0.7
+  glasses    – overlay centred at eye midpoint, scaled to inter-eye distance × 2.8
+  sunglasses – same anchor as glasses, scaled to inter-eye distance × 3.0
+
+Overlay assets are discovered automatically from data/overlays/ by prefix
+(cup_*.png, glasses_*.png, sunglasses_*.png).
 
 Fallback to fixed proportions if InsightFace detects no face.
 
 Usage:
-    uv run python scripts/generate_cover.py [--types cup,hand,book] [--limit N]
+    uv run python scripts/generate_cover.py [--types cup,glasses,sunglasses] [--limit N]
 """
 
 import argparse
@@ -34,37 +37,44 @@ OVERLAY_DIR = Path("data/overlays")
 SYNTH_ROOT = Path("data/synthetic")
 LFW_JSON = Path("data/raw/lfw_filtered.json")
 
-# anchor indices in InsightFace 5-kps: [left_eye, right_eye, nose, mouth_l, mouth_r]
+# InsightFace 5-kps indices
 KPS_LEFT_EYE = 0
 KPS_RIGHT_EYE = 1
 KPS_NOSE = 2
 KPS_MOUTH_L = 3
 KPS_MOUTH_R = 4
 
-OVERLAY_VARIANTS = {
-    "cup": ["cup_01.png", "cup_02.png", "cup_03.png", "cup_04.png", "cup_05.png"],
-    "hand": ["hand_01.png", "hand_02.png", "hand_03.png", "hand_04.png", "hand_05.png"],
-    "book": ["book_01.png", "book_02.png", "book_03.png", "book_04.png", "book_05.png"],
+# Scale factors: overlay width = face_ref × scale
+SCALE = {
+    "cup": 0.70,       # 70% of face width, anchored at mouth
+    "glasses": 2.8,    # 2.8× inter-eye distance, anchored at eye midpoint
+    "sunglasses": 3.0, # 3.0× inter-eye distance, anchored at eye midpoint
 }
+
+
+def discover_variants(occ_type: str) -> list[str]:
+    """Return sorted list of overlay filenames matching <occ_type>_*.png."""
+    files = sorted(OVERLAY_DIR.glob(f"{occ_type}_*.png"))
+    names = [f.name for f in files]
+    if not names:
+        raise FileNotFoundError(f"No overlay files found for type '{occ_type}' in {OVERLAY_DIR}")
+    return names
 
 
 def load_overlay(name: str) -> np.ndarray:
     """Load RGBA overlay as (H, W, 4) uint8 numpy array."""
-    path = OVERLAY_DIR / name
-    img = Image.open(path).convert("RGBA")
+    img = Image.open(OVERLAY_DIR / name).convert("RGBA")
     return np.array(img)
 
 
 def alpha_blend(base: np.ndarray, overlay_rgba: np.ndarray, cx: int, cy: int) -> np.ndarray:
-    """Alpha-blend overlay (H_o, W_o, 4) centred at (cx, cy) onto base (H, W, 3)."""
+    """Alpha-blend overlay centred at (cx, cy) onto base (H, W, 3) RGB image."""
     H, W = base.shape[:2]
     oh, ow = overlay_rgba.shape[:2]
     x1 = cx - ow // 2
     y1 = cy - oh // 2
-    x2 = x1 + ow
-    y2 = y1 + oh
+    x2, y2 = x1 + ow, y1 + oh
 
-    # Clip to image bounds
     ox1 = max(0, -x1)
     oy1 = max(0, -y1)
     ox2 = ow - max(0, x2 - W)
@@ -79,40 +89,20 @@ def alpha_blend(base: np.ndarray, overlay_rgba: np.ndarray, cx: int, cy: int) ->
     alpha = patch[:, :, 3:4].astype(np.float32) / 255.0
     fg = patch[:, :, :3].astype(np.float32)
     bg = base[y1:y2, x1:x2].astype(np.float32)
-    blended = (fg * alpha + bg * (1 - alpha)).clip(0, 255).astype(np.uint8)
     result = base.copy()
-    result[y1:y2, x1:x2] = blended
-    return result
-
-
-def apply_book_cover(base: np.ndarray, y_start: int) -> np.ndarray:
-    """Cover lower face with a semi-transparent colored rectangle (book)."""
-    H, W = base.shape[:2]
-    y_start = max(0, min(y_start, H))
-    # Pick random book color (blue or red) reproducibly by image hash
-    color = (45, 85, 160) if random.random() < 0.5 else (175, 40, 40)
-    result = base.copy()
-    overlay = np.zeros((H - y_start, W, 3), dtype=np.uint8)
-    overlay[:] = color
-    alpha = 0.88
-    result[y_start:H] = cv2.addWeighted(overlay, alpha, result[y_start:H], 1 - alpha, 0)
+    result[y1:y2, x1:x2] = (fg * alpha + bg * (1 - alpha)).clip(0, 255).astype(np.uint8)
     return result
 
 
 def get_face_info(app, img_112: np.ndarray):
-    """
-    Upsample 112x112 → 320x320, run InsightFace detection, return (bbox, kps) in
-    original (112×112) coordinates. Returns (None, None) if no face found.
-    """
+    """Upsample 112→320, detect face, return (bbox, kps) in 112-space. (None, None) on failure."""
     scale = 320 / 112
     img_large = cv2.resize(img_112, (320, 320), interpolation=cv2.INTER_LINEAR)
     faces = app.get(img_large)
     if not faces:
         return None, None
     face = faces[0]
-    bbox = (face.bbox / scale).astype(np.float32)   # [x1,y1,x2,y2]
-    kps = (face.kps / scale).astype(np.float32)     # (5,2)
-    return bbox, kps
+    return (face.bbox / scale).astype(np.float32), (face.kps / scale).astype(np.float32)
 
 
 def synthesize_image(
@@ -124,56 +114,60 @@ def synthesize_image(
 ) -> np.ndarray:
     """Return synthesized BGR image with occlusion applied."""
     H, W = base_bgr.shape[:2]
+    scale = SCALE[occ_type]
 
     if kps is not None:
+        eye_cx = int((kps[KPS_LEFT_EYE][0] + kps[KPS_RIGHT_EYE][0]) / 2)
+        eye_cy = int((kps[KPS_LEFT_EYE][1] + kps[KPS_RIGHT_EYE][1]) / 2)
+        eye_dist = abs(float(kps[KPS_RIGHT_EYE][0] - kps[KPS_LEFT_EYE][0]))
         mouth_cx = int((kps[KPS_MOUTH_L][0] + kps[KPS_MOUTH_R][0]) / 2)
         mouth_cy = int((kps[KPS_MOUTH_L][1] + kps[KPS_MOUTH_R][1]) / 2)
         face_w = float(bbox[2] - bbox[0])
-        chin_cy = int((mouth_cy + bbox[3]) / 2)
-        nose_y = int(kps[KPS_NOSE][1])
     else:
-        # Fallback fixed proportions
+        # Fallback: fixed proportions for 112×112 LFW images
+        eye_cx, eye_cy = W // 2, int(H * 0.38)
+        eye_dist = W * 0.28
         mouth_cx, mouth_cy = W // 2, int(H * 0.72)
-        face_w = float(W * 0.8)
-        chin_cy = int(H * 0.87)
-        nose_y = int(H * 0.55)
+        face_w = W * 0.8
 
-    # Scale overlay to 70% of face width
-    target_w = max(20, int(face_w * 0.70))
+    if occ_type == "cup":
+        ref_w = face_w
+        cx, cy = mouth_cx, mouth_cy
+    else:  # glasses / sunglasses
+        ref_w = eye_dist
+        cx, cy = eye_cx, eye_cy
+
+    target_w = max(20, int(ref_w * scale))
     oh, ow = overlay.shape[:2]
-    target_h = int(oh * target_w / ow)
+    target_h = max(1, int(oh * target_w / ow))
     overlay_resized = np.array(
         Image.fromarray(overlay).resize((target_w, target_h), Image.LANCZOS)
     )
 
     base_rgb = cv2.cvtColor(base_bgr, cv2.COLOR_BGR2RGB)
-
-    if occ_type == "cup":
-        result_rgb = alpha_blend(base_rgb, overlay_resized, mouth_cx, mouth_cy)
-    elif occ_type == "hand":
-        result_rgb = alpha_blend(base_rgb, overlay_resized, mouth_cx, chin_cy)
-    else:  # book
-        result_rgb = apply_book_cover(base_rgb, nose_y)
-
+    result_rgb = alpha_blend(base_rgb, overlay_resized, cx, cy)
     return cv2.cvtColor(result_rgb, cv2.COLOR_RGB2BGR)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Synthesize occluded face images")
-    parser.add_argument("--types", default="cup,hand,book", help="Comma-separated occlusion types")
+    parser.add_argument(
+        "--types", default="cup,glasses,sunglasses",
+        help="Comma-separated occlusion types (cup / glasses / sunglasses)",
+    )
     parser.add_argument("--limit", type=int, default=None, help="Max identities to process")
     args = parser.parse_args()
 
     occ_types = [t.strip() for t in args.types.split(",")]
     logger.info("Occlusion types: %s", occ_types)
 
-    # Load ALL overlay variants for random selection
+    # Discover and load all overlay variants per type
     all_overlays: dict[str, list[np.ndarray]] = {}
     for t in occ_types:
-        if t != "book":
-            all_overlays[t] = [load_overlay(v) for v in OVERLAY_VARIANTS[t]]
+        variants = discover_variants(t)
+        all_overlays[t] = [load_overlay(v) for v in variants]
+        logger.info("  %s: %d variants loaded", t, len(variants))
 
-    # Load identity map
     with open(LFW_JSON) as f:
         identity_map = json.load(f)
 
@@ -182,9 +176,7 @@ def main() -> None:
         identities = identities[: args.limit]
     logger.info("Processing %d identities", len(identities))
 
-    # Initialize InsightFace
     from insightface.app import FaceAnalysis
-
     app = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
     app.prepare(ctx_id=0, det_size=(640, 640))
 
@@ -195,8 +187,7 @@ def main() -> None:
     processed = 0
 
     for identity in identities:
-        query_paths = identity_map[identity]["query"]
-        for rel_path in query_paths:
+        for rel_path in identity_map[identity]["query"]:
             img_path = DATA_ROOT / rel_path
             img_bgr = cv2.imread(str(img_path))
             if img_bgr is None:
@@ -211,9 +202,7 @@ def main() -> None:
 
             img_name = Path(rel_path).name
             for t in occ_types:
-                # Randomly pick a variant for diversity
-                variants = all_overlays.get(t)
-                overlay = random.choice(variants) if variants else np.zeros((1, 1, 4), dtype=np.uint8)
+                overlay = random.choice(all_overlays[t])
                 synth = synthesize_image(img_bgr, t, overlay, bbox, kps)
                 out_dir = SYNTH_ROOT / t / identity
                 out_dir.mkdir(parents=True, exist_ok=True)
@@ -224,10 +213,8 @@ def main() -> None:
             if processed % 200 == 0 or processed == total_queries:
                 logger.info(
                     "Progress: %d/%d | detect_ok=%d fail=%d",
-                    processed,
-                    total_queries,
-                    stats["detect_ok"],
-                    stats["detect_fail"],
+                    processed, total_queries,
+                    stats["detect_ok"], stats["detect_fail"],
                 )
 
     logger.info("=== Synthesis complete ===")

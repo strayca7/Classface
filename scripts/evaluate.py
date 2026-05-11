@@ -38,6 +38,7 @@ FIGURES_DIR = RESULTS_DIR / "figures"
 GALLERY_NPY = FEATURES_DIR / "gallery.npy"
 GALLERY_LABELS = FEATURES_DIR / "gallery_labels.json"
 GALLERY_CROPPED_NPY = FEATURES_DIR / "gallery_cropped.npy"
+GALLERY_CROPPED_LABELS = FEATURES_DIR / "gallery_cropped_labels.json"
 
 
 # ---------------------------------------------------------------------------
@@ -191,7 +192,9 @@ def run_compare(args):
         raise FileNotFoundError("未找到 data/synthetic/，请先运行 make generate")
 
     gallery_norm, gallery_labels = load_gallery(GALLERY_NPY, GALLERY_LABELS)
-    gallery_cropped_norm, _ = load_gallery(GALLERY_CROPPED_NPY, GALLERY_LABELS)
+    gallery_cropped_norm, gallery_cropped_labels = load_gallery(
+        GALLERY_CROPPED_NPY, GALLERY_CROPPED_LABELS
+    )
     label_set = set(gallery_labels)
 
     # 查找眼周裁剪 query 目录
@@ -262,7 +265,7 @@ def run_compare(args):
                         emb_crop = extract_embedding(crop_path)
                         if emb_crop is not None:
                             final_pred, _ = cosine_top1(
-                                emb_crop, gallery_cropped_norm, gallery_labels
+                                emb_crop, gallery_cropped_norm, gallery_cropped_labels
                             )
                         else:
                             final_pred = pred_c
