@@ -62,19 +62,55 @@
 
 ---
 
-## 第三阶段：基线识别系统验证
+## 第三阶段：基线识别系统验证 ✅
 
-> 待第二阶段完成后展开
+- [x] **实现 gallery 特征库构建**（`scripts/build_gallery.py`）
+    - InsightFace buffalo_l，上采样 112→320 后送入完整流水线（检测→对齐→ArcFace）
+    - 输出 `data/features/gallery.npy`（1680, 512）和 `gallery_labels.json`
+    - 全量运行：成功 1680，失败 0，耗时 ~503s
+- [x] **实现基线评估**（`scripts/evaluate.py --mode baseline`）
+    - 向量化余弦相似度 1:N 检索，Top-1 准确率
+    - 验证结果（50 身份抽样）：**97.04%** > 95% 预期 ✓
+- [x] **新增 Makefile 命令**：`build-gallery`、`eval-baseline`
+- [x] **文档**：`docs/phase3-baseline.md`
+- [x] **提交**：`feat(recognize): add baseline recognition with InsightFace gallery`
 
-- [ ] **建立 gallery 特征库**
-    - [ ] 运行 `scripts/build_gallery.py` 提取 InsightFace 特征，保存至 `data/features/`
-- [ ] **评估干净数据基线准确率**
-    - [ ] 运行 `scripts/evaluate.py --mode baseline`，预期 Top-1 > 95%
+---
 
-## 第四阶段：非标准遮挡数据合成
+## 第四阶段：非标准遮挡数据合成 ✅
 
-> 待第三阶段完成后展开
+- [x] **贴图素材**：真实 PNG 资产 58 张（cup×18 / glasses×20 / sunglasses×20），存于 `data/overlays/`，已纳入 git
+- [x] **实现遮挡合成**（`scripts/generate_cover.py`）
+    - InsightFace 5-kps 定位（上采样 112→320）→ alpha blending
+    - cup：嘴角中点锚点，宽 = face_w × 0.70
+    - glasses / sunglasses：双眼中点锚点，宽 = 眼间距 × 2.8 / 3.0
+    - 全量运行结果：7484 query × 3 类 = **22,452 张**合成图，耗时 **72 min**
+    - 人脸检测率：96.9%（7250/7484）；失败时退化为固定比例
+    - 输出：`data/synthetic/{cup,glasses,sunglasses}/`
+
+---
 
 ## 第五阶段：遮挡鲁棒识别与对比实验
 
-> 待第四阶段完成后展开
+### 已完成
+
+- [x] **预处理（重跑）**：`make preprocess`，13,233 张，耗时 1m33s
+- [x] **Gallery 特征库（重建）**：`make build-gallery`，1680 张，耗时 8m22s，输出 `data/features/gallery.npy`
+- [x] **基线评估（全量）**：`make eval-baseline`
+    - 全量 7484 query，**Top-1 = 92.65%**（6934/7484），耗时 31m49s
+    - 注：比 Phase 3 抽样（97.04%）略低，全量包含更多难例
+    - 输出：`data/results/baseline_accuracy.txt`
+- [x] **眼周裁剪**：`make crop`
+    - Gallery：1680 张，detect_ok=1632 / fail=48（97.1%）
+    - Query：22,452 张，detect_ok=21,036 / fail=1,416（93.7%）
+    - 耗时：**102 min**
+    - 输出：`data/cropped/gallery/`、`data/cropped/query/`、`data/cropped/vis/`、`data/features/gallery_cropped.npy`
+
+### 待运行（下次继续）
+
+- [ ] **对比实验（eval-compare）**：运行命令 `make eval-compare`
+    - 三组对比：A 基线(干净) / B 遮挡naive / C 两级级联
+    - 两级级联：L1_HIGH=0.8 → 直接输出；0.4≤score<0.8 → 眼周裁剪二次比对；<0.4 → unknown
+    - 预计耗时：**~96 min**
+    - 前置条件：`data/features/gallery.npy` ✓、`data/features/gallery_cropped.npy` ✓、`data/synthetic/` ✓、`data/cropped/query/` ✓
+    - 输出：`data/results/compare_accuracy.txt`、`data/results/figures/accuracy_compare.png`、`data/results/figures/occlusion_type.png`
