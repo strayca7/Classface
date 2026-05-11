@@ -73,7 +73,6 @@ def crop_eye_region(img_112: np.ndarray, bbox, kps) -> np.ndarray:
 
 def extract_feature(app, img_112: np.ndarray):
     """Extract 512-d embedding (1-D, shape (512,)); return None on failure."""
-    scale = 320 / 112
     img_large = cv2.resize(img_112, (320, 320), interpolation=cv2.INTER_LINEAR)
     faces = app.get(img_large)
     if faces:
@@ -145,7 +144,7 @@ def main() -> None:
     )
 
     # --- Synthetic query crops ---
-    occ_types = ["cup", "hand", "book"]
+    occ_types = ["cup", "glasses", "sunglasses"]
     n_detect_ok = n_detect_fail = 0
     total_query = 0
 
