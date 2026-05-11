@@ -35,8 +35,8 @@
 【第三阶段】基线识别系统验证（干净数据）✅
     │  InsightFace 512-d 特征提取 → gallery 缓存 → 余弦相似度 → 基线 Top-1 = 97.04%
     ▼
-【第四阶段】非标准遮挡数据合成
-    │  MediaPipe 关键点定位 → 仿射变换贴图 → Alpha 掩膜融合 → 合成遮挡数据集
+【第四阶段】非标准遮挡数据合成 ✅
+    │  InsightFace 5-kps 关键点定位 → Alpha 掩膜融合 → 合成遮挡数据集（cup/glasses/sunglasses）
     ▼
 【第五阶段】遮挡鲁棒识别：动态局部裁剪 + 两级级联
        遮挡图像 → Level 1 全局比对
@@ -167,37 +167,43 @@
 
 ---
 
-## 第四阶段：非标准遮挡数据合成
+## 第四阶段：非标准遮挡数据合成 ✅
 
-**目标**：在第一阶段预处理后的干净图像上，通过关键点定位 + 仿射变换 + Alpha 掩膜，自动合成课堂场景下的遮挡图像，构建专属测试集。
+**目标**：在第一阶段预处理后的干净图像上，通过关键点定位 + Alpha 掩膜融合，自动合成课堂场景下的遮挡图像，构建专属测试集。
 
-**核心 API**：`mediapipe.solutions.face_mesh`、`cv2.getRotationMatrix2D`、`cv2.warpAffine`、`cv2.split`、`cv2.bitwise_and`、`cv2.add`
+**核心 API**：`insightface.app.FaceAnalysis`（5-kps 关键点）、`PIL.Image`、`cv2.resize`、Alpha blending（numpy）
 
 ### 步骤
 
-- [ ] **准备贴图素材**
-    - 收集 ≥3 类带 Alpha 通道的 PNG 贴图：水杯（`cup_01.png`）、托腮手（`hand_01.png`）、书本（`book_01.png`），存入 `data/overlays/`
-    - 每类至少 2~3 个变体，增加多样性
+- [x] **准备贴图素材**
+    - 真实拍摄 PNG 贴图（带 Alpha 通道），共 3 类 58 张，存入 `data/overlays/`（纳入 git）：
+        - 水杯 `cup_*.png`：18 张
+        - 普通眼镜 `glasses_*.png`：20 张
+        - 墨镜 `sunglasses_*.png`：20 张
+    - 运行时通过 `glob(f"{type}_*.png")` 自动发现，每张 query 随机取一个变体
 
-- [ ] **实现关键点定位**（`scripts/generate_cover.py`）
-    - 使用 `mediapipe.solutions.face_mesh` 获取面部关键点
-    - 遮挡锚点：嘴部 #13/#14（水杯/书本）、下巴 #152（手托腮）
+- [x] **实现关键点定位**（`scripts/generate_cover.py`）
+    - 使用 InsightFace buffalo_l 5-kps（上采样 112→320 后检测，坐标映射回 112 空间）
+    - 遮挡锚点：
+        - cup → 嘴角中点 `(kps[3]+kps[4])/2`，宽度 = face_w × 0.70
+        - glasses / sunglasses → 双眼中点 `(kps[0]+kps[1])/2`，宽度 = 眼间距 × 2.8 / 3.0
+    - 检测失败时退化为固定比例 fallback（112×112 经验坐标）
 
-- [ ] **实现仿射变换贴图合成**
-    - 根据锚点关键点间距离计算贴图目标尺寸（自适应人脸大小，关键点距离比例缩放）
-    - `cv2.getRotationMatrix2D` + `cv2.warpAffine` 对贴图旋转/缩放至目标姿态
-    - `cv2.split(overlay)` 分离 Alpha 通道，生成前景掩膜与背景掩膜
-    - `cv2.bitwise_and` + `cv2.add` 将贴图融合到人脸图像
+- [x] **实现 Alpha 掩膜融合合成**
+    - 根据锚点距离缩放贴图至目标宽度（PIL LANCZOS），保持宽高比
+    - 以锚点为中心 alpha blending（`fg × α + bg × (1−α)`）
 
-- [ ] **批量生成合成数据集**
+- [x] **批量生成合成数据集**
     - 输入源：`data/processed/lfw/`（预处理后的干净图像）
-    - 每张图像随机叠加 1~2 种遮挡类型，保存至 `data/synthetic/<occlusion_type>/<person_name>/`
-    - 输出生成统计日志（总数、各遮挡类型比例）
+    - 每张 query 图像为每种遮挡类型各生成一张，保存至 `data/synthetic/{cup,glasses,sunglasses}/<person_name>/`
+    - 输出生成统计日志（总数、各遮挡类型数量、人脸检测率）
+    - ⚠️ 全量合成约 18.7 min，待手动运行：`make generate`
 
-- [ ] **工程规范**
-    - 日志：记录每张图像的遮挡类型、贴图锚点坐标、缩放比例
-    - Makefile：`generate` → `uv run python scripts/generate_cover.py`
-    - 提交：`feat(data): add classroom occlusion synthesis pipeline`
+- [x] **工程规范**
+    - 日志：记录进度、detect_ok/fail、每类生成数量
+    - Makefile：`generate` → `uv run python scripts/generate_cover.py`（`gen-overlays` 已废弃，贴图为真实资产）
+    - 文档：`docs/phase4-synthesis.md`
+    - 提交：`feat(overlays): replace generated assets with real image cutouts (cup/glasses/sunglasses)`
 
 ---
 
