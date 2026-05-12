@@ -40,7 +40,12 @@
 | 基线评估（全量） | Top-1 准确率 | **92.65%**（6934/7484） |
 | 眼周裁剪 Gallery | 检测率 | 97.1%（1632/1680） |
 | 眼周裁剪 Query | 检测率 | 93.7%（21,036/22,452） |
-| eval-compare | 状态 | **待运行**（`make eval-compare`，预计 ~96 min） |
+| eval-compare A（基线） | Top-1 准确率 | **92.65%**（6934/7484） |
+| eval-compare B（遮挡 Naive） | Top-1 准确率 | **89.11%**（20007/22452） |
+| eval-compare C（两级级联） | Top-1 准确率 | **12.52%**（2812/22452） |
+| eval-compare 各类型 B/C | sunglasses | B=88.79% / C=8.23% |
+| eval-compare 各类型 B/C | cup | B=87.85% / C=17.45% |
+| eval-compare 各类型 B/C | glasses | B=90.69% / C=11.89% |
 
 ### Fixed
 - `scripts/prepare_dataset.py`：修复 `relative_to(Path("."))` 在绝对路径下崩溃，改为相对于 `lfw_dir`
