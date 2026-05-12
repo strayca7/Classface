@@ -38,12 +38,12 @@
 【第四阶段】非标准遮挡数据合成 ✅
     │  InsightFace 5-kps 关键点定位 → Alpha 掩膜融合 → 合成遮挡数据集（cup/glasses/sunglasses）
     ▼
-【第五阶段】遮挡鲁棒识别：动态局部裁剪 + 两级级联
+【第五阶段】遮挡鲁棒识别：动态局部裁剪 + 两级级联 ✅
        遮挡图像 → Level 1 全局比对
        ├─ 得分 > 0.8  → 直接输出身份
        ├─ 得分 0.4~0.8 → Level 2 裁剪眼周区域 → 二次比对，输出身份
        └─ 得分 < 0.4  → 标记"无法识别"
-       └─ 对比实验：基线准确率 vs 遮挡后 vs 两级策略提升
+       └─ 对比实验：A=92.65% / B=89.11% / C=12.52%（级联因阈值问题未能提升，见 Phase 5 分析）
 ```
 
 ---
@@ -207,52 +207,66 @@
 
 ---
 
-## 第五阶段：遮挡鲁棒识别与对比实验
+## 第五阶段：遮挡鲁棒识别与对比实验 ✅
 
 **目标**：实现"动态局部裁剪 + 两级级联"识别策略，与基线对比，定量证明策略对遮挡场景的提升效果。
 
-**核心 API**：MediaPipe FaceMesh 关键点、NumPy 数组切片、`cv2.hconcat`、`matplotlib.pyplot`
+**实际实现说明**：眼周裁剪使用 InsightFace 5-kps 关键点（而非 MediaPipe FaceMesh），两级级联逻辑集成在 `scripts/evaluate.py --mode compare` 中（无独立 recognize.py）。
+
+**核心 API**：InsightFace 5-kps、NumPy 数组切片、`cv2.hconcat`、`matplotlib.pyplot`
 
 ### 步骤
 
 #### 5.1 动态局部裁剪
 
-- [ ] **计算眼周黄金区域**（`scripts/crop.py`）
-    - 上边界：眉毛上方关键点 #70（左）/ #105（右），留 10px 余量
-    - 下边界：鼻梁中部关键点 #6，留 5px 余量
-    - 左右边界：脸部轮廓关键点 #234（左）/ #454（右）
+- [x] **计算眼周区域**（`scripts/crop.py`）
+    - 使用 InsightFace 5-kps：y=[bbox_top−4, nose_y+4]，x=[bbox_left−4, bbox_right+4]
+    - 检测失败时退化为固定比例裁剪（上 1/3 区域）
 
-- [ ] **实现裁剪函数**
-    - `img[y1:y2, x1:x2]` 执行裁剪，`np.clip` 防止越界
-    - 对 `data/processed/lfw/`（gallery 底库）和 `data/synthetic/`（遮挡测试集）执行相同裁剪，分别保存至 `data/cropped/gallery/` 和 `data/cropped/query/`
+- [x] **实现裁剪函数**
+    - `img[y1:y2, x1:x2]` 裁剪，`np.clip` 防止越界，`cv2.resize` 至 112×112
+    - 对 gallery（干净）和 query（遮挡合成图）执行相同裁剪，分别保存
 
-- [ ] **预计算眼周 gallery 特征**
-    - 基于 `data/cropped/gallery/` 提取眼周特征，保存至 `data/features/gallery_cropped.npy`
+- [x] **预计算眼周 gallery 特征**
+    - 基于 `data/cropped/gallery/` 提取特征，保存至 `data/features/gallery_cropped.npy`（1680, 512）
+    - detect_ok=1632/1680（97.1%）
 
-- [ ] **可视化验证**
-    - 随机抽取 10 组，`cv2.hconcat([orig, cropped])` 拼接，保存至 `data/cropped/vis/`
+- [x] **可视化验证**
+    - 随机抽取样本，orig+cropped 拼接，保存至 `data/cropped/vis/`
 
 #### 5.2 两级级联识别
 
-- [ ] **实现两级级联逻辑**（`scripts/recognize.py`）
-    - **Level 1（全局）**：完整对齐图像 → InsightFace 特征 → 与 `gallery.npy` 比对
-        - 最高得分 > 0.8：直接输出身份
-    - **Level 2（局部触发）**：得分 0.4~0.8 → 裁剪眼周区域 → 与 `gallery_cropped.npy` 二次比对，输出结果
-    - 得分 < 0.4：标记"无法识别"
+- [x] **实现两级级联逻辑**（`scripts/evaluate.py --mode compare`）
+    - **Level 1（全局）**：完整图像 → ArcFace → gallery.npy 比对
+        - 最高得分 > 0.8（L1_HIGH）：直接输出身份
+    - **Level 2（局部触发）**：0.4 ≤ 得分 < 0.8 → 读取预裁剪眼周图 → gallery_cropped.npy 二次比对
+    - 得分 < 0.4（L1_LOW）：标记"无法识别"
 
 #### 5.3 对比实验
 
-- [ ] **编写三组对比测试**（`scripts/evaluate.py --mode compare`）
-    - **组 A（基线）**：干净 LFW query 图像 → 全脸识别（第三阶段结果，复用）
-    - **组 B（遮挡 naive）**：合成遮挡图像 → 直接全脸识别（不使用任何遮挡策略）
-    - **组 C（两级策略）**：合成遮挡图像 → 两级级联识别
+- [x] **三组对比测试**（`scripts/evaluate.py --mode compare`）
+    - **组 A（基线）**：干净 LFW query → 全脸识别（复用 baseline_accuracy.txt）
+    - **组 B（遮挡 naive）**：合成遮挡图 → 直接全脸识别
+    - **组 C（两级策略）**：合成遮挡图 → 两级级联识别
+    - 全量实验耗时 **136m44s**（CPU）
 
-- [ ] **绘制对比图表**（`matplotlib`）
-    - 图1：三组准确率柱状图（A vs B vs C），保存 `data/results/figures/accuracy_compare.png`
-    - 图2：不同遮挡类型（水杯/手/书本）在组 B vs 组 C 下的准确率折线图，保存 `data/results/figures/occlusion_type.png`
-    - 图分辨率 300 dpi
+- [x] **实验结果**
+    | 组别 | 准确率 | 样本数 |
+    |------|--------|--------|
+    | A — 基线 | **92.65%** | 7,484 |
+    | B — 遮挡 Naive | **89.11%** | 22,452 |
+    | C — 两级级联 | **12.52%** | 22,452 |
 
-- [ ] **工程规范**
-    - 日志：记录每次识别的触发级别（L1/L2）、得分、最终身份、耗时（ms）
-    - Makefile：`crop` → `uv run python scripts/crop.py`；`recognize` → `uv run python scripts/recognize.py`；`eval` → `uv run python scripts/evaluate.py`
-    - 提交：`feat(recognize): add two-stage cascade recognition with occlusion robustness`
+    各遮挡类型：sunglasses B=88.79%/C=8.23%，cup B=87.85%/C=17.45%，glasses B=90.69%/C=11.89%
+
+    > **分析**：C 组准确率极低，根本原因是：① L1_HIGH=0.8 阈值过高，大部分遮挡图像（即使 B 能正确识别的）得分落在 0.4~0.8 被路由至 L2；② glasses/sunglasses 贴图直接覆盖眼周区域，L2 的眼周裁剪无法获得干净特征，导致大量误识。B 组（89.11%）证明 ArcFace 全脸特征对局部遮挡本身具备一定鲁棒性（相对基线仅下降 3.54pp）。如需改进，应针对各遮挡类型动态选择裁剪区域（水杯→眼周有效，眼镜→嘴/下颌区域）并调低 L1_HIGH。
+
+- [x] **绘制对比图表**（`matplotlib`）
+    - `data/results/figures/accuracy_compare.png`：三组准确率柱状图（300 dpi）
+    - `data/results/figures/occlusion_type.png`：各遮挡类型 B vs C 折线图（300 dpi）
+
+- [x] **工程规范**
+    - 日志：记录遮挡类型处理进度、最终三组准确率
+    - Makefile：`crop`、`eval-compare`（`eval-baseline` 为 baseline 模式）
+    - 文档：`docs/phase5-robust.md`
+    - 提交：`docs(procedures): mark phase 5 complete with experimental results`
