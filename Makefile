@@ -7,7 +7,8 @@ LFW_ARCHIVE := data/raw/lfw-funneled.tgz
         build-gallery eval-baseline \
         gen-overlays generate \
         crop eval-compare \
-        cover clean
+        cover clean \
+        plot-results demo-report update-reports
 
 ## setup: 创建项目所需目录结构
 setup:
@@ -88,6 +89,10 @@ plot-results:
 ## demo-report: 生成演示报告图表 + docs/demo_report.md
 demo-report:
 	$(PYTHON) scripts/generate_demo_report.py $(ARGS)
+
+## update-reports: 解析实验结果并更新所有报告文档与图表
+update-reports:
+	$(PYTHON) scripts/update_reports.py $(ARGS)
 
 ## clean: 清除所有生成产物
 clean:
