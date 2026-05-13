@@ -123,13 +123,26 @@ def generate_identity_strips() -> None:
         sg_dir   = DATA / "synthetic" / "sunglasses" / identity
         ec_dir   = DATA / "cropped"  / "query" / "cup" / identity
 
+        # Anchor on the first query image in synthetic/cup (never 0001).
+        # Use its stem to fetch the matching file in every directory,
+        # so all 6 columns show the exact same photo of the same person.
+        anchor = _first_img(cup_dir)
+        stem = anchor.stem if anchor else None  # e.g. "Queen_Latifah_0002"
+
+        def _by_stem(directory: Path, fallback_fn=_first_img) -> Path | None:
+            if stem:
+                p = directory / f"{stem}.jpg"
+                if p.exists():
+                    return p
+            return fallback_fn(directory)
+
         paths = [
-            _first_img(raw_dir),
-            _first_img(proc_dir),
-            _second_img(cup_dir),
-            _second_img(gl_dir),
-            _second_img(sg_dir),
-            _second_img(ec_dir),
+            _by_stem(raw_dir),
+            _by_stem(proc_dir),
+            _by_stem(cup_dir),
+            _by_stem(gl_dir),
+            _by_stem(sg_dir),
+            _by_stem(ec_dir),
         ]
 
         for c, path in enumerate(paths):
