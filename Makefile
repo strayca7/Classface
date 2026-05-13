@@ -81,6 +81,14 @@ cover:
 	@rm -f data/output/*.jpg
 	$(PYTHON) scripts/generate_cover.py $(ARGS)
 
+## plot-results: 从实验结果生成图表 → docs/figures/
+plot-results:
+	$(PYTHON) scripts/plot_results.py $(ARGS)
+
+## demo-report: 生成演示报告图表 + docs/demo_report.md
+demo-report:
+	$(PYTHON) scripts/generate_demo_report.py $(ARGS)
+
 ## clean: 清除所有生成产物
 clean:
 	rm -rf data/output data/processed data/features data/results data/synthetic data/segmented data/cropped
