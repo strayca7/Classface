@@ -17,6 +17,14 @@ import numpy as np
 
 matplotlib.use("Agg")
 
+# Configure CJK font for macOS
+import matplotlib.font_manager as _fm
+_CJK_CANDIDATES = ["Arial Unicode MS", "Hei", "Heiti TC", "PingFang SC", "STHeiti"]
+for _font in _CJK_CANDIDATES:
+    if any(f.name == _font for f in _fm.fontManager.ttflist):
+        matplotlib.rcParams["font.family"] = _font
+        break
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] plot_results: %(message)s",
