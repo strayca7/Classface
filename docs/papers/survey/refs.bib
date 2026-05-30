@@ -1,0 +1,242 @@
+% refs.bib — Survey on Deep Learning for Medical Image Segmentation
+% Format: author-year keys for elsarticle-harv (Harvard author-year style)
+
+%% ── Core Reference Papers ────────────────────────────────────────────────────
+
+@article{qureshi2023review,
+  author    = {Qureshi, Imran and Yan, Junhua and Abbas, Qaisar and Shaheed, Kashif
+               and Riaz, Awais Bin and Wahid, Abdul and Khan, Muhammad Waseem Jan
+               and Szczuko, Piotr},
+  title     = {Medical image segmentation using deep semantic-based methods:
+               {A} review of techniques, applications and emerging trends},
+  journal   = {Information Fusion},
+  volume    = {90},
+  pages     = {316--352},
+  year      = {2023},
+  doi       = {10.1016/j.inffus.2022.09.031},
+}
+
+@article{zhou2023nnformer,
+  author    = {Zhou, Hong-Yu and Guo, Jiansen and Zhang, Yinghao and Han, Xiaoguang
+               and Yu, Lequan and Wang, Liansheng and Yu, Yizhou},
+  title     = {{nnFormer}: {V}olumetric medical image segmentation via a {3D}
+               transformer},
+  journal   = {{IEEE} Transactions on Image Processing},
+  volume    = {32},
+  pages     = {4036--4045},
+  year      = {2023},
+  doi       = {10.1109/TIP.2023.3293771},
+}
+
+%% ── Foundational Deep Learning Methods ──────────────────────────────────────
+
+@inproceedings{long2015fcn,
+  author    = {Long, Jonathan and Shelhamer, Evan and Darrell, Trevor},
+  title     = {Fully convolutional networks for semantic segmentation},
+  booktitle = {Proceedings of the {IEEE} Conference on Computer Vision and
+               Pattern Recognition ({CVPR})},
+  pages     = {3431--3440},
+  year      = {2015},
+}
+
+@inproceedings{ronneberger2015unet,
+  author    = {Ronneberger, Olaf and Fischer, Philipp and Brox, Thomas},
+  title     = {{U-Net}: {C}onvolutional networks for biomedical image segmentation},
+  booktitle = {Proceedings of the International Conference on Medical Image Computing
+               and Computer-Assisted Intervention ({MICCAI})},
+  pages     = {234--241},
+  year      = {2015},
+}
+
+@inproceedings{vaswani2017attention,
+  author    = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit,
+               Jakob and Jones, Llion and Gomez, Aidan N and Kaiser, {\L}ukasz
+               and Polosukhin, Illia},
+  title     = {Attention is all you need},
+  booktitle = {Advances in Neural Information Processing Systems ({NeurIPS})},
+  pages     = {5998--6008},
+  year      = {2017},
+}
+
+@inproceedings{dosovitskiy2020vit,
+  author    = {Dosovitskiy, Alexey and Beyer, Lucas and Kolesnikov, Alexander and
+               Weissenborn, Dirk and Zhai, Xiaohua and Unterthiner, Thomas and
+               Dehghani, Mostafa and Minderer, Matthias and Heigold, Georg and
+               Gelly, Sylvain and Uszkoreit, Jakob and Houlsby, Neil},
+  title     = {An image is worth {16$\times$16} words: {T}ransformers for image
+               recognition at scale},
+  booktitle = {International Conference on Learning Representations ({ICLR})},
+  year      = {2021},
+}
+
+%% ── Transformer Architectures ────────────────────────────────────────────────
+
+@article{chen2021transunet,
+  author    = {Chen, Jieneng and Lu, Yongyi and Yu, Qihang and Luo, Xiangde and
+               Adeli, Ehsan and Wang, Yan and Lu, Le and Yuille, Alan L and
+               Zhou, Yuyin},
+  title     = {{TransUNet}: {T}ransformers make strong encoders for medical image
+               segmentation},
+  journal   = {arXiv preprint arXiv:2102.04306},
+  year      = {2021},
+}
+
+@inproceedings{cao2022swinunet,
+  author    = {Cao, Hu and Wang, Yueyue and Chen, Joy and Jiang, Dongsheng and
+               Zhang, Xiaopeng and Tian, Qi and Wang, Manning},
+  title     = {{Swin-UNet}: {U}net-like pure transformer for medical image
+               segmentation},
+  booktitle = {European Conference on Computer Vision ({ECCV}) Workshop},
+  year      = {2022},
+}
+
+@inproceedings{liu2021swin,
+  author    = {Liu, Ze and Lin, Yutong and Cao, Yue and Hu, Han and Wei, Yixuan
+               and Zhang, Zheng and Lin, Stephen and Guo, Baining},
+  title     = {Swin {T}ransformer: {H}ierarchical vision transformer using shifted
+               windows},
+  booktitle = {Proceedings of the {IEEE/CVF} International Conference on Computer
+               Vision ({ICCV})},
+  pages     = {10012--10022},
+  year      = {2021},
+}
+
+%% ── U-Net Variants ───────────────────────────────────────────────────────────
+
+@article{isensee2021nnunet,
+  author    = {Isensee, Fabian and Jaeger, Paul F and Kohl, Simon A A and
+               Petersen, Jens and Maier-Hein, Klaus H},
+  title     = {{nnU-Net}: {A} self-configuring method for deep learning-based
+               biomedical image segmentation},
+  journal   = {Nature Methods},
+  volume    = {18},
+  number    = {2},
+  pages     = {203--211},
+  year      = {2021},
+}
+
+@inproceedings{zhou2018unetpp,
+  author    = {Zhou, Zongwei and Rahman Siddiquee, Md Mahfuzur and Tajbakhsh,
+               Nima and Liang, Jianming},
+  title     = {{UNet++}: {A} nested {U-Net} architecture for medical image
+               segmentation},
+  booktitle = {Deep Learning in Medical Image Analysis and Multimodal Learning for
+               Clinical Decision Support (DLMIA Workshop, MICCAI)},
+  pages     = {3--11},
+  year      = {2018},
+}
+
+@article{oktay2018,
+  author    = {Oktay, Ozan and Schlemper, Jo and Folgoc, Lo{\"i}c Le and Lee,
+               Matthew and Heinrich, Mattias and Misawa, Kazunari and Mori, Kensaku
+               and McDonagh, Steven and Hammerla, Nils Y and Kainz, Bernhard and
+               Glocker, Ben and Rueckert, Daniel},
+  title     = {Attention {U-Net}: {L}earning where to look for the pancreas},
+  journal   = {arXiv preprint arXiv:1804.03999},
+  year      = {2018},
+}
+
+@inproceedings{cciccek2016,
+  author    = {{\c{C}}i{\c{c}}ek, {\"O}zg{\"u}n and Abdulkadir, Ahmed and
+               Lienkamp, Soeren S and Brox, Thomas and Ronneberger, Olaf},
+  title     = {{3D U-Net}: {L}earning dense volumetric segmentation from sparse
+               annotation},
+  booktitle = {Proceedings of the International Conference on Medical Image Computing
+               and Computer-Assisted Intervention ({MICCAI})},
+  pages     = {424--432},
+  year      = {2016},
+}
+
+%% ── Attention in CNNs ────────────────────────────────────────────────────────
+
+@inproceedings{hu2018senet,
+  author    = {Hu, Jie and Shen, Li and Sun, Gang},
+  title     = {Squeeze-and-excitation networks},
+  booktitle = {Proceedings of the {IEEE} Conference on Computer Vision and
+               Pattern Recognition ({CVPR})},
+  pages     = {7132--7141},
+  year      = {2018},
+}
+
+@inproceedings{wang2018nonlocal,
+  author    = {Wang, Xiaolong and Girshick, Ross and Gupta, Abhinav and He,
+               Kaiming},
+  title     = {Non-local neural networks},
+  booktitle = {Proceedings of the {IEEE} Conference on Computer Vision and
+               Pattern Recognition ({CVPR})},
+  pages     = {7794--7803},
+  year      = {2018},
+}
+
+%% ── Multi-Scale Architectures ────────────────────────────────────────────────
+
+@article{chen2018deeplab,
+  author    = {Chen, Liang-Chieh and Papandreou, George and Schroff, Florian
+               and Adam, Hartwig},
+  title     = {Rethinking atrous convolution for semantic image segmentation},
+  journal   = {arXiv preprint arXiv:1706.05587},
+  year      = {2018},
+}
+
+@inproceedings{lin2017fpn,
+  author    = {Lin, Tsung-Yi and Doll{\'a}r, Piotr and Girshick, Ross and He,
+               Kaiming and Hariharan, Bharath and Belongie, Serge},
+  title     = {Feature pyramid networks for object detection},
+  booktitle = {Proceedings of the {IEEE} Conference on Computer Vision and
+               Pattern Recognition ({CVPR})},
+  pages     = {2117--2125},
+  year      = {2017},
+}
+
+%% ── Semi-Supervised and Weakly Supervised ────────────────────────────────────
+
+@inproceedings{tarvainen2017,
+  author    = {Tarvainen, Antti and Valpola, Harri},
+  title     = {Mean teachers are better role models: {W}eight-averaged consistency
+               targets improve semi-supervised deep learning results},
+  booktitle = {Advances in Neural Information Processing Systems ({NeurIPS})},
+  year      = {2017},
+}
+
+%% ── Classical Methods ────────────────────────────────────────────────────────
+
+@article{kass1988snakes,
+  author    = {Kass, Michael and Witkin, Andrew and Terzopoulos, Demetri},
+  title     = {Snakes: {A}ctive contour models},
+  journal   = {International Journal of Computer Vision},
+  volume    = {1},
+  number    = {4},
+  pages     = {321--331},
+  year      = {1988},
+}
+
+@inproceedings{boykov2001graphcuts,
+  author    = {Boykov, Yuri and Jolly, Marie-Pierre},
+  title     = {Interactive graph cuts for optimal boundary and region segmentation
+               of objects in {N-D} images},
+  booktitle = {Proceedings of the {IEEE} International Conference on Computer
+               Vision ({ICCV})},
+  pages     = {105--112},
+  year      = {2001},
+}
+
+%% ── Foundation Models ────────────────────────────────────────────────────────
+
+@inproceedings{kirillov2023sam,
+  author    = {Kirillov, Alexander and Mintun, Eric and Ravi, Nikhila and Mao,
+               Hanzi and Rolland, Chloe and Gustafson, Laura and Xiao, Tete and
+               Whitehead, Spencer and Berg, Alexander C and Lo, Wan-Yen and
+               Doll{\'a}r, Piotr and Girshick, Ross},
+  title     = {Segment anything},
+  booktitle = {Proceedings of the {IEEE/CVF} International Conference on Computer
+               Vision ({ICCV})},
+  pages     = {4015--4026},
+  year      = {2023},
+}
+
+@article{gu2023mamba,
+  author    = {Gu, Albert and Dao, Tri},
+  title     = {Mamba: {L}inear-time sequence modeling with selective state spaces},
+  journal   = {arXiv preprint arXiv:2312.00752},
+  year      = {2023},
+}
