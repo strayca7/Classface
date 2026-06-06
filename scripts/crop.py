@@ -21,6 +21,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from device_utils import get_ort_providers
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -99,7 +101,7 @@ def main() -> None:
     logger.info("Processing %d identities", len(identities))
 
     from insightface.app import FaceAnalysis
-    app = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
+    app = FaceAnalysis(name="buffalo_l", providers=get_ort_providers())
     app.prepare(ctx_id=0, det_size=(640, 640))
 
     # --- Gallery crops ---

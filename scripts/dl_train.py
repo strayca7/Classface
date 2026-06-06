@@ -25,7 +25,8 @@ from torch.utils.data import DataLoader, Dataset
 
 # Allow imports from project root
 sys.path.insert(0, str(Path(__file__).parent))
-from dl_model import ResUNet, get_device
+from dl_model import ResUNet
+from device_utils import get_device
 
 logging.basicConfig(
     level=logging.INFO,

@@ -23,7 +23,8 @@ import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).parent))
-from dl_model import ResUNet, get_device
+from dl_model import ResUNet
+from device_utils import get_device
 from dl_train import _to_tensor
 
 logging.basicConfig(

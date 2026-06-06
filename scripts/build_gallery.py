@@ -16,6 +16,8 @@ from pathlib import Path
 
 import numpy as np
 
+from device_utils import get_ort_providers
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -39,7 +41,7 @@ def load_insightface_model():
 
     log.info("初始化 InsightFace buffalo_l 模型（首次运行将自动下载模型文件）...")
     # det_size=(640,640) 为检测模型的标准推理分辨率；预处理图像在传入前会先上采样
-    app = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
+    app = FaceAnalysis(name="buffalo_l", providers=get_ort_providers())
     app.prepare(ctx_id=0, det_size=(640, 640))
     log.info("模型初始化完成")
     return app

@@ -21,6 +21,8 @@ from pathlib import Path
 
 import numpy as np
 
+from device_utils import get_ort_providers
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] cascade_ablation: %(message)s",
@@ -49,7 +51,7 @@ def get_app():
     if _app is None:
         from insightface.app import FaceAnalysis
         log.info("初始化 InsightFace 模型...")
-        _app = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
+        _app = FaceAnalysis(name="buffalo_l", providers=get_ort_providers())
         _app.prepare(ctx_id=0, det_size=(640, 640))
         log.info("模型就绪")
     return _app

@@ -17,21 +17,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 
+from device_utils import get_device  # noqa: F401  re-exported for convenience
+
 logger = logging.getLogger(__name__)
-
-
-def get_device() -> torch.device:
-    """Return the best available device: CUDA > MPS > CPU."""
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        logger.info("Device: CUDA — %s", torch.cuda.get_device_name(0))
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-        logger.info("Device: Apple Silicon MPS")
-    else:
-        device = torch.device("cpu")
-        logger.info("Device: CPU (no GPU detected)")
-    return device
 
 
 class _ConvBlock(nn.Module):
