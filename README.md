@@ -11,7 +11,6 @@
 原始人脸图像
   → 第一阶段：图像预处理（YCrCb 均衡化 + 双眼对齐 + 112×112 裁剪）
   → 第二阶段：图像分割（深度学习 — ResUNet：ResNet-18 编码器 + U-Net 解码器）
-              ↳ 对比基线保留：YCrCb/GMM 肤色分割 + GrabCut/Watershed 前景分割
   → 第三阶段：基线识别（InsightFace ArcFace gallery + 余弦相似度）
   → 第四阶段：遮挡数据合成（InsightFace 5-kps 关键点 + Alpha 掩膜）
   → 第五阶段：两级级联识别 + 三组对比实验（A基线/B遮挡Naive/C级联）
@@ -66,21 +65,17 @@ make prepare-dataset     # 2. 生成 gallery/query 分割清单（<1s）
 make preprocess          # 3. 批量预处理（M3≈2min / RTX≈1min / CPU≈2min）
 
 # ── 第二阶段：深度学习分割 ──────────────────────────────────────
-make segment-face        # 4. GrabCut 前景分割，生成 U-Net 训练所需伪标签（CPU≈5min）
+make segment-face        # 4. 生成 ResUNet 训练伪标签（GrabCut，CPU≈5min）
 make dl-train            # 5. 训练 ResUNet（M3≈15min / RTX4060≈4min / CPU≈90min）
 make dl-segment          # 6. 批量推理，输出 dl_unet 掩膜（M3≈5min / RTX≈2min / CPU≈15min）
 make dl-eval-seg         # 7. DL vs 传统方法对比评估（≈1min）
 
-# ── 可选：传统分割方法对比基线 ──────────────────────────────────
-make segment-skin        # 8a. YCrCb/GMM 肤色分割（≈5min）
-make eval-seg            # 8b. 四方法可视化对比（≈1min）
-
 # ── 第三–五阶段：识别系统 ───────────────────────────────────────
-make build-gallery       # 9. 提取 gallery 特征（M3≈8min / CPU≈8min）
-make generate            # 10. 合成遮挡数据集（≈72min）
-make eval-baseline       # 11. 基线评估（≈32min）
-make crop                # 12. 眼周裁剪（≈102min）
-make eval-compare        # 13. 三组对比实验（≈137min）
+make build-gallery       # 8. 提取 gallery 特征（M3≈8min / RTX≈2min / CPU≈8min）
+make generate            # 9. 合成遮挡数据集（M3≈72min / RTX≈20min）
+make eval-baseline       # 10. 基线评估（M3≈32min / RTX≈8min）
+make crop                # 11. 眼周裁剪（M3≈102min / RTX≈25min）
+make eval-compare        # 12. 三组对比实验（M3≈137min / RTX≈35min）
 ```
 
 支持 `ARGS="--limit N"` 快速调试，例如 `make dl-train ARGS="--epochs 3 --limit 200"`。
@@ -89,15 +84,17 @@ make eval-compare        # 13. 三组对比实验（≈137min）
 
 ```bash
 make download-lfw && make prepare-dataset && make preprocess
-make segment-face        # 生成 GrabCut 伪标签
-make dl-train            # 训练 U-Net（M3≈15min）
-make dl-segment          # 批量推理
-make dl-eval-seg         # 对比评估
+make segment-face   # 生成 ResUNet 训练伪标签（GrabCut）
+make dl-train       # 训练 U-Net（M3≈15min）
+make dl-segment     # 批量推理
+make dl-eval-seg    # 对比评估
 ```
 
 ---
 
 ## Makefile 命令说明
+
+### 主流程命令
 
 | 命令 | 说明 | Apple M3 | RTX 4060 | CPU |
 |------|------|----------|----------|-----|
@@ -105,9 +102,7 @@ make dl-eval-seg         # 对比评估
 | `make download-lfw` | 下载 LFW-funneled 数据集并解压 | 网络决定 | — | — |
 | `make prepare-dataset` | 筛选身份，生成 gallery/query 分割 JSON | <1s | — | — |
 | `make preprocess` | 批量图像预处理（均衡化+对齐+112×112） | ~2min | ~1min | ~2min |
-| `make segment-skin` | YCrCb 阈值 + GMM 肤色分割（传统） | ~5min | — | ~5min |
-| `make segment-face` | GrabCut + Watershed 前景分割（传统，兼作 U-Net 伪标签） | ~5min | — | ~5min |
-| `make eval-seg` | 传统四方法对比可视化与统计 | ~1min | — | ~1min |
+| `make segment-face` | **生成 ResUNet 训练伪标签**（GrabCut） | ~5min | — | ~5min |
 | `make dl-train` | **训练 ResUNet**（20 epoch，GrabCut 伪标签） | **~15min** | **~4min** | ~90min |
 | `make dl-segment` | **批量推理**，输出 data/segmented/dl_unet/ | **~5min** | **~2min** | ~15min |
 | `make dl-eval-seg` | **DL vs 传统对比评估**（IoU/Dice/前景占比） | ~1min | ~1min | ~1min |
@@ -117,6 +112,15 @@ make dl-eval-seg         # 对比评估
 | `make crop` | 眼周裁剪 + gallery_cropped.npy 预计算 | ~102min | ~25min | ~102min |
 | `make eval-compare` | 三组对比实验（A基线/B遮挡naive/C两级策略） | ~137min | ~35min | ~137min |
 | `make clean` | 删除所有生成产物 | <1s | — | — |
+
+### 传统方法命令（历史对比数据，已完成）
+
+> 以下命令对应传统机器学习分割方法，实验结果见"图像分割方法对比"表格。无需重新运行。
+
+| 命令 | 说明 |
+|------|------|
+| `make segment-skin` | YCrCb 阈值 + GMM 肤色分割（结果已记录） |
+| `make eval-seg` | 传统四方法对比可视化与统计（结果已记录） |
 
 ---
 
@@ -143,15 +147,22 @@ make dl-eval-seg         # 对比评估
 
 ### 图像分割方法对比
 
-| 方法 | 类型 | 平均前景占比 | 特点 |
-|------|------|------------|------|
-| YCrCb 阈值（Kovac 椭圆） | 传统 | 51.5% | 速度最快，边界较粗糙 |
-| GMM 肤色分割 | 传统 | 96.4% | 几乎整张人脸均判为肤色，召回率高 |
-| GrabCut | 传统 | 23.6% | 前景保守，边缘精细；同时用作 U-Net 训练伪标签 |
-| Watershed | 传统 | 35.0% | 区域增长，噪声较多 |
-| **ResUNet（深度学习）** | 深度学习 | *(待运行)* | ResNet-18 + U-Net，端到端学习 |
+**当前方法（深度学习）：**
 
-可视化对比图：`data/results/figures/segmentation_compare.png`（传统）/ `dl_segmentation_compare.png`（DL 对比）
+| 方法 | 前景占比 | IoU vs GrabCut | Dice vs GrabCut |
+|------|----------|----------------|-----------------|
+| **ResUNet（深度学习）** | *(待运行 `make dl-train && make dl-segment && make dl-eval-seg`)* | — | — |
+
+**传统方法历史数据（保留作对比）：**
+
+| 方法 | 平均前景占比 | 特点 |
+|------|------------|------|
+| YCrCb 阈值（Kovac 椭圆） | 51.5% | 速度最快，边界较粗糙 |
+| GMM 肤色分割 | 96.4% | 几乎整张人脸均判为肤色，召回率高 |
+| GrabCut（用作伪标签来源） | 23.6% | 前景保守，边缘精细 |
+| Watershed | 35.0% | 区域增长，噪声较多 |
+
+可视化对比图：`data/results/figures/dl_segmentation_compare.png`（DL vs 传统 6 列对比）
 
 ### 人脸识别准确率
 
@@ -205,14 +216,13 @@ v1 的 L1_HIGH=0.8 使 87% 的图像被路由至质量较低的 L2，导致 C=12
 # 文字结果
 cat data/results/baseline_accuracy.txt
 cat data/results/compare_accuracy.txt
-cat data/results/dl_segmentation_stats.txt   # DL 分割评估结果
+cat data/results/dl_segmentation_stats.txt   # DL 分割评估结果（dl-eval-seg 后生成）
 
 # 图表（macOS）
 open data/results/figures/accuracy_compare.png           # A/B/C 三组柱状图
 open data/results/figures/occlusion_type.png             # 各遮挡类型 B vs C 折线图
-open data/results/figures/segmentation_compare.png       # 传统分割方法对比
-open data/results/figures/dl_segmentation_compare.png    # DL vs 传统 6 列对比
-open data/results/figures/dl_fg_ratio_compare.png        # 各方法前景占比柱状图
+open data/results/figures/dl_segmentation_compare.png    # DL vs 传统 6 列对比（dl-eval-seg 后生成）
+open data/results/figures/dl_fg_ratio_compare.png        # 各方法前景占比柱状图（dl-eval-seg 后生成）
 ```
 
 ### 两级级联策略说明（优化版）
@@ -277,7 +287,7 @@ get_device() 优先级：CUDA（NVIDIA RTX 4060）> MPS（Apple M3）> CPU
 ### 运行
 
 ```bash
-# 前置：确保 GrabCut 伪标签已存在
+# 前置：生成 ResUNet 训练伪标签（GrabCut）
 make segment-face
 
 # 训练
@@ -312,11 +322,11 @@ dip/
 │   ├── synthetic/            # 合成遮挡数据集（cup/glasses/sunglasses）
 │   ├── cropped/              # 眼周裁剪图像（gallery/query/vis）
 │   ├── segmented/            # 分割结果掩膜
-│   │   ├── skin_ycrcb/       # YCrCb 阈值分割
-│   │   ├── skin_gmm/         # GMM 肤色分割
-│   │   ├── grabcut/          # GrabCut 前景（兼 U-Net 伪标签）
-│   │   ├── watershed/        # Watershed 分割
-│   │   └── dl_unet/          # ResUNet 深度学习分割输出
+│   │   ├── dl_unet/          # ResUNet 深度学习分割输出（主方法）
+│   │   ├── grabcut/          # GrabCut（用作 U-Net 训练伪标签）
+│   │   ├── skin_ycrcb/       # YCrCb 阈值分割（历史对比）
+│   │   ├── skin_gmm/         # GMM 肤色分割（历史对比）
+│   │   └── watershed/        # Watershed 分割（历史对比）
 │   └── results/              # 评估结果与对比图表
 ├── docs/
 │   ├── phase1-dataset.md         # 数据集准备模块说明
