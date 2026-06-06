@@ -9,7 +9,7 @@
 | 图像处理 | `opencv-python` | 仿射变换、直方图均衡、掩膜融合、裁剪 |
 | 关键点检测 | `mediapipe` | 人脸 468 关键点（FaceMesh） |
 | 人脸识别模型 | `insightface`（ArcFace backbone） | 512 维特征向量提取（预训练，无需额外训练） |
-| 机器学习 | `scikit-learn` | GMM 肤色分割（`GaussianMixture`） |
+| 深度学习框架 | `torch` + `torchvision` | U-Net 模型定义、训练、推理；自动检测 CUDA / MPS / CPU |
 | 数值计算 | `numpy` | 向量化余弦相似度计算 |
 | 数据集 | LFW (Labeled Faces in the Wild) | 干净人脸数据，≥2 张图像的身份共 1,680 位 |
 | 可视化 | `matplotlib` | 准确率对比图表 |
@@ -27,10 +27,12 @@
 【第一阶段】预处理与人脸对齐 ✅
     │  直方图均衡化（YCrCb/Y 通道）→ 双眼中心对齐（warpAffine）→ 统一 112×112
     ▼
-【第二阶段】图像分割（传统机器学习方法）✅
-    │  肤色分割：YCrCb 阈值（Kovac 椭圆模型）+ GMM
-    │  前景分割：GrabCut + Watershed
-    │  方法对比：前景占比 YCrCb 51.5% / GMM 96.4% / GrabCut 23.6% / Watershed 35.0%
+【第二阶段】图像分割（深度学习方法）⬜
+    │  U-Net（PyTorch，4 级编解码器 + 跳跃连接）
+    │  设备：CUDA（NVIDIA RTX 4060）> MPS（Apple M3）> CPU 自动选择
+    │  训练策略：GrabCut 输出作为伪标签（弱监督）
+    │  推理输出：data/segmented/dl_unet/，二值掩膜
+    │  方法对比：DL U-Net vs YCrCb vs GMM vs GrabCut vs Watershed（IoU / Dice）
     ▼
 【第三阶段】基线识别系统验证（干净数据）✅
     │  InsightFace 512-d 特征提取 → gallery 缓存 → 余弦相似度 → 基线 Top-1 = 97.04%
@@ -84,49 +86,53 @@
 
 ---
 
-## 第二阶段：图像分割（传统机器学习方法）✅
+## 第二阶段：图像分割（深度学习方法）⬜
 
-**目标**：在预处理后的人脸图像上，用传统方法实现肤色分割与人脸前景分割，为后续遮挡鲁棒识别提供先验掩膜，并通过定量对比验证各方法效果。
+**目标**：用 PyTorch U-Net 替代传统机器学习方法（GMM / GrabCut / Watershed），实现端到端人脸前景分割，并通过对比实验定量验证深度学习方案的优势。
 
-**核心 API**：`cv2.cvtColor`、`cv2.morphologyEx`、`cv2.grabCut`、`cv2.watershed`、`cv2.distanceTransform`、`sklearn.mixture.GaussianMixture`
+**核心技术**：U-Net（4 级编解码器 + 跳跃连接）、GrabCut 伪标签、BCE + Dice 复合损失函数
 
-### 2a 肤色分割
+**设备适配**：`get_device()` 函数自动检测——CUDA（NVIDIA RTX 4060）→ MPS（Apple M3）→ CPU，代码无需手动修改。
 
-- [x] **实现 YCrCb 颜色阈值分割**（`scripts/segment_skin.py`）
-    - 转换至 YCrCb，应用 Kovac 经典椭圆模型：Cr ∈ [133, 173]、Cb ∈ [77, 127]
-    - 形态学后处理（开运算 + 闭运算）去除噪点
-    - 输出掩膜至 `data/segmented/skin_ycrcb/`；实测平均前景占比 **51.5%**
+### 2a 模型与训练
 
-- [x] **实现 GMM 肤色分割**（同脚本）
-    - 采样皮肤像素（图像中心 20×20）与背景像素（四角 10×10），共 ~400K 像素
-    - `sklearn.mixture.GaussianMixture(n_components=2, covariance_type='full', n_init=3)`
-    - 模型缓存至 `data/features/gmm_skin.pkl`，自动复用
-    - 输出掩膜至 `data/segmented/skin_gmm/`；实测平均前景占比 **96.4%**（人脸区域几乎全为皮肤）
+- [ ] **实现 U-Net 模型**（`scripts/dl_model.py`）
+    - Encoder：ResNet-18（ImageNet 预训练，torchvision），提取 4 级特征图 [56², 28², 14², 7², 4²]
+    - Decoder：双线性上采样 + 跳跃连接 + Conv-BN-ReLU × 2，逐级恢复空间分辨率至 112×112
+    - 输出：`1×112×112`，Sigmoid 激活，二值掩膜
+    - `get_device()` 统一入口：CUDA → MPS → CPU，打印当前设备信息
 
-### 2b 人脸前景分割
+- [ ] **实现训练脚本**（`scripts/dl_train.py`）
+    - 数据集：`data/processed/lfw/`（输入）+ `data/segmented/grabcut/`（GrabCut 伪标签）
+    - 训练/验证分割：80% / 20%（从 1,680 gallery 图像中随机划分）
+    - 批次大小：GPU 模式 16，CPU 模式 4（自动调整）
+    - 损失函数：BCE Loss + Dice Loss（各权重 0.5）
+    - 优化器：Adam（lr=1e-4），余弦退火调度（CosineAnnealingLR）
+    - 训练轮次：默认 20 epoch（`--epochs N` 可调）
+    - Checkpoint：每 epoch 保存最优模型至 `data/features/unet_ckpt.pth`
+    - 支持 `--epochs N` 参数；自动在训练结束后打印最优 val Dice
 
-- [x] **实现 GrabCut 前景分割**（`scripts/segment_face.py`）
-    - 初始矩形 `rect=(10, 10, 92, 92)`（留 10px 余量），`iterCount=5`
-    - 提取 `GC_FGD | GC_PR_FGD` 前景掩膜
-    - 输出至 `data/segmented/grabcut/`；实测平均前景占比 **23.6%**
+### 2b 批量推理
 
-- [x] **实现 Watershed 分割**（同脚本）
-    - 灰度化 → Otsu 阈值 → `cv2.distanceTransform` → 峰值标记 → `cv2.watershed`
-    - 输出前景掩膜至 `data/segmented/watershed/`；实测平均前景占比 **35.0%**
+- [ ] **实现推理脚本**（`scripts/dl_segment.py`）
+    - 加载 `data/features/unet_ckpt.pth`，对所有 `data/processed/lfw/` 图像推理
+    - 阈值 0.5 二值化，保存掩膜至 `data/segmented/dl_unet/<person_name>/<img>.png`
+    - 支持 `--limit N` 调试参数
 
 ### 2c 方法对比实验
 
-- [x] **编写对比可视化脚本**（`scripts/eval_segmentation.py`）
-    - 随机抽取 20 张图像，5 列并排（原图 | YCrCb | GMM | GrabCut | Watershed）
-    - 保存对比图至 `data/results/figures/segmentation_compare.png`（300 dpi）
-    - 统计结果输出至 `data/results/segmentation_stats.txt`
+- [ ] **实现对比评估脚本**（`scripts/dl_eval_segmentation.py`）
+    - 随机抽取 20 张图像，6 列并排可视化（原图 | YCrCb | GMM | GrabCut | Watershed | U-Net）
+    - 以 GrabCut 掩膜为参考，计算各方法 IoU / Dice / 前景占比
+    - 保存对比图至 `data/results/figures/dl_segmentation_compare.png`（300 dpi）
+    - 统计结果输出至 `data/results/dl_segmentation_stats.txt`
 
 ### 工程规范
 
-- [x] **新增 Makefile 命令**：`segment-skin`、`segment-face`、`eval-seg`、`validate-seg`
-- [x] **验证脚本**（`scripts/validate_segmentation.py`）：6 项断言，验证通过 ✓
-- [x] **文档**：`docs/phase2-segmentation.md`
-- [x] **提交**：`feat(segment): add skin color and face foreground segmentation`
+- [ ] **更新 Makefile**：新增 `dl-train`、`dl-segment`、`dl-eval-seg` 目标
+- [ ] **更新依赖**（`pyproject.toml`）：添加 `torch>=2.2.0`、`torchvision>=0.17.0`
+- [ ] **文档**：`docs/phase2-dl-segmentation.md`
+- [ ] **提交**：`feat(segment): replace traditional ML with U-Net deep learning segmentation`
 
 ---
 

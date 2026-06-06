@@ -4,6 +4,7 @@ LFW_ARCHIVE := data/raw/lfw-funneled.tgz
 
 .PHONY: setup download-lfw prepare-dataset preprocess \
         segment-skin segment-face eval-seg validate-seg \
+        dl-train dl-segment dl-eval-seg \
         build-gallery eval-baseline \
         gen-overlays generate \
         crop eval-compare \
@@ -15,7 +16,7 @@ setup:
 	mkdir -p data/raw/lfw data/processed/lfw data/overlays \
 	          data/features data/results/figures scripts \
 	          data/segmented/skin_ycrcb data/segmented/skin_gmm \
-	          data/segmented/grabcut data/segmented/watershed \
+	          data/segmented/grabcut data/segmented/watershed data/segmented/dl_unet \
 	          data/synthetic/cup data/synthetic/hand data/synthetic/book \
 	          data/cropped/gallery data/cropped/query data/cropped/vis
 
@@ -51,6 +52,18 @@ eval-seg:
 ## validate-seg: 验证第二阶段所有分割输出
 validate-seg:
 	$(PYTHON) scripts/validate_segmentation.py
+
+## dl-train: 训练 ResUNet 人脸分割模型（GrabCut 伪标签，默认 20 epoch）
+dl-train:
+	$(PYTHON) scripts/dl_train.py $(ARGS)
+
+## dl-segment: 批量推理，输出掩膜至 data/segmented/dl_unet/
+dl-segment:
+	$(PYTHON) scripts/dl_segment.py $(ARGS)
+
+## dl-eval-seg: DL vs 传统方法对比评估（IoU / Dice / 前景占比）
+dl-eval-seg:
+	$(PYTHON) scripts/dl_eval_segmentation.py $(ARGS)
 
 ## build-gallery: 提取 gallery 身份特征，缓存至 data/features/
 build-gallery:
