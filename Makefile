@@ -2,7 +2,7 @@ PYTHON := uv run python
 LFW_URL := https://ndownloader.figshare.com/files/5976015
 LFW_ARCHIVE := data/raw/lfw-funneled.tgz
 
-.PHONY: setup download-lfw prepare-dataset preprocess \
+.PHONY: sync setup download-lfw prepare-dataset preprocess \
         segment-skin segment-face eval-seg validate-seg \
         dl-train dl-segment dl-eval-seg \
         build-gallery eval-baseline \
@@ -10,6 +10,9 @@ LFW_ARCHIVE := data/raw/lfw-funneled.tgz
         crop eval-compare \
         cover clean \
         plot-results demo-report update-reports
+
+sync:
+	uv sync
 
 ## setup: 创建项目所需目录结构
 setup:
