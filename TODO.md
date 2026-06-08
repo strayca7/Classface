@@ -194,3 +194,69 @@ make dl-train && make dl-segment && make dl-eval-seg
 - GrabCut 伪标签（`data/segmented/grabcut/`）须已存在，否则先运行 `make segment-face`
 - Apple M3 上 MPS 训练速度约为 CPU 的 3~5×；RTX 4060 CUDA 约为 CPU 的 20~50×
 - checkpoint 文件 `data/features/unet_ckpt.pth` 已在 `.gitignore` 中，不会提交至 git
+
+---
+
+## 待补充实验数据（报告存在空缺，择时运行）
+
+以下两项实验数据在 `docs/report.md` 中标记为 `—`（未运行），补充后需手动将结果填入报告对应表格。
+
+---
+
+### 补充实验 1：YCrCb / GMM 分割掩膜的 IoU / Dice 指标
+
+**缺失位置**：`docs/report.md` §8.3「图像分割结果」表格，YCrCb 和 GMM 两行的 IoU / Dice 列为 `—`
+
+**缺失原因**：`data/segmented/skin_ycrcb/` 和 `data/segmented/skin_gmm/` 目录不存在（仅在历史环境生成过，当前机器未运行过 `segment-skin`）
+
+**预计耗时**：YCrCb + GMM 分割约 10–15 min（CPU），评估约 2 min
+
+**运行步骤**：
+
+```bash
+# 步骤 1：生成 YCrCb 和 GMM 分割掩膜（输出到 data/segmented/skin_ycrcb/ 和 skin_gmm/）
+make segment-skin
+
+# 步骤 2：重新跑五方法对比评估，更新 IoU / Dice 数据
+make dl-eval-seg
+# 输出：
+#   data/results/dl_segmentation_stats.txt  ← 查看此文件获取新数据
+#   data/results/figures/dl_fg_ratio_compare.png（更新）
+#   data/results/figures/dl_segmentation_compare.png（更新）
+```
+
+**运行后操作**：查看 `data/results/dl_segmentation_stats.txt`，将 YCrCb 和 GMM 的 IoU/Dice 值填入 `docs/report.md` §8.3 表格。
+
+---
+
+### 补充实验 2：C v2 全量对比实验（L1_HIGH=0.5，best-of-two）
+
+**缺失位置**：`docs/report.md` §七（续）两张汇总表中 `C v2（全量）` 列均为 `—`
+
+**缺失原因**：v2 全量运行预计耗时 >97 min（CPU），此前未运行
+
+**预计耗时**：约 100–130 min（CPU）；RTX 4060 约 10–15 min
+
+**注意**：`eval_cascade_ablation.py` 在同一个循环内同时跑 v1/v2/v3，运行后将**覆盖** `data/results/cascade_ablation.txt`（目前存有 50 样本结果）。建议先备份：
+
+```bash
+# 可选：备份当前 50 样本结果
+cp data/results/cascade_ablation.txt data/results/cascade_ablation_50sample.txt
+```
+
+**运行命令**（取消 50 人限制，对全部 1680 身份运行 v1/v2/v3）：
+
+```bash
+uv run python scripts/eval_cascade_ablation.py --limit 0
+# --limit 0 等价于无限制（代码逻辑：if limit: identities = identities[:limit]，0 为 falsy 跳过截断）
+# 输出：
+#   data/results/cascade_ablation.txt     ← 全量 v1/v2/v3 数值
+#   data/results/figures/cascade_ablation.png（更新）
+```
+
+**运行后操作**：查看 `data/results/cascade_ablation.txt` 中 v2 全量数据，填入 `docs/report.md` §七（续）以下位置：
+
+```
+### 整体准确率汇总  →  C v2 全量 列填入实际数值（预计 ~45–50%）
+### 各遮挡类型全量细分  →  C v2（全量）列填入 sunglasses/cup/glasses 三行数值
+```
