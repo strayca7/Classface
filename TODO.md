@@ -203,29 +203,16 @@ make dl-train && make dl-segment && make dl-eval-seg
 
 ---
 
-### 补充实验 1：YCrCb / GMM 分割掩膜的 IoU / Dice 指标
+### ✅ 补充实验 1：YCrCb / GMM 分割掩膜的 IoU / Dice 指标（已完成 2026-06-08）
 
-**缺失位置**：`docs/report.md` §8.3「图像分割结果」表格，YCrCb 和 GMM 两行的 IoU / Dice 列为 `—`
+**结果**：已运行 `make segment-skin && make dl-eval-seg`，数据已填入报告。
 
-**缺失原因**：`data/segmented/skin_ycrcb/` 和 `data/segmented/skin_gmm/` 目录不存在（仅在历史环境生成过，当前机器未运行过 `segment-skin`）
+| 方法 | 前景占比 | IoU vs GrabCut | Dice vs GrabCut |
+|------|---------|--------------|----------------|
+| YCrCb | 54.7% | 0.499 | 0.633 |
+| GMM | 93.7% | 0.308 | 0.456 |
 
-**预计耗时**：YCrCb + GMM 分割约 10–15 min（CPU），评估约 2 min
-
-**运行步骤**：
-
-```bash
-# 步骤 1：生成 YCrCb 和 GMM 分割掩膜（输出到 data/segmented/skin_ycrcb/ 和 skin_gmm/）
-make segment-skin
-
-# 步骤 2：重新跑五方法对比评估，更新 IoU / Dice 数据
-make dl-eval-seg
-# 输出：
-#   data/results/eval_seg_dl_stats.txt  ← 查看此文件获取新数据
-#   data/results/figures/plot_seg_fg_ratio.png（更新）
-#   data/results/figures/plot_seg_dl_compare.png（更新）
-```
-
-**运行后操作**：查看 `data/results/eval_seg_dl_stats.txt`，将 YCrCb 和 GMM 的 IoU/Dice 值填入 `docs/report.md` §8.3 表格。
+数据来源：`data/results/eval_seg_dl_stats.txt`
 
 ---
 

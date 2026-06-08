@@ -263,8 +263,8 @@ return cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
 #### 4.2.5 推理结果
 
 - 批量推理 **9,164/9,164** 张成功，0 失败
-- 前景像素均值占比：**27.9%**（与 GrabCut 伪标签 23.6% 相近，符合弱监督预期）
-- 对比伪标签：IoU = **0.807**，Dice = **0.827**（高度一致，且边界更平滑）
+- 前景像素均值占比：**28.9%**（与 GrabCut 伪标签 28.9% 几乎完全一致，符合弱监督预期）
+- 对比伪标签：IoU = **0.855**，Dice = **0.877**（高度一致，且边界更平滑）
 
 > 数据来源：`data/results/eval_seg_dl_stats.txt`
 
@@ -334,14 +334,16 @@ skin_comp = int(np.argmax(gmm.means_[:, 1]))
 
 ### 4.3.5 传统方法对比结果
 
-基于 LFW 预处理图像（20 张随机抽样）的前景像素占比统计：
+基于 LFW 预处理图像（20 张随机抽样，统一评估）的前景像素占比统计：
 
-| 方法 | 均值 | 标准差 | 最小 | 最大 |
-|------|------|--------|------|------|
-| YCrCb 阈值 | **51.5%** | 15.7% | 29.9% | 82.5% |
-| GMM | **96.4%** | 6.0% | 82.2% | 100.0% |
-| GrabCut | **23.6%** | 14.7% | 0.0% | 43.9% |
-| Watershed | **35.0%** | 10.4% | 15.7% | 53.4% |
+| 方法 | 均值 | 备注 |
+|------|------|------|
+| YCrCb 阈值 | **54.7%** | 过度分割皮肤区域 |
+| GMM | **93.7%** | 严重过度分割 |
+| GrabCut | **28.9%** | 参考方法（保守但精准）|
+| Watershed | **31.3%** | 介于二者之间 |
+
+> 数据来源：`data/results/eval_seg_dl_stats.txt`（`make dl-eval-seg`）
 
 可视化对比图：`data/results/figures/plot_seg_traditional.png`（300 dpi，5 列并排：原图 | YCrCb | GMM | GrabCut | Watershed）
 
@@ -355,15 +357,15 @@ skin_comp = int(np.argmax(gmm.means_[:, 1]))
 
 | 方法 | 前景占比 | IoU vs GrabCut | Dice vs GrabCut | 备注 |
 |------|---------|--------------|----------------|------|
-| YCrCb 阈值 | 51.5% | — | — | 历史数据（肤色阈值）|
-| GMM 肤色 | 96.4% | — | — | 历史数据（过度分割）|
-| GrabCut | 23.6% | (reference) | (reference) | 伪标签来源 |
-| Watershed | 35.0% | 0.290 | 0.377 | 历史数据 |
-| **ResUNet（当前）** | **27.9%** | **0.807** | **0.827** | Apple M3 MPS 训练 |
+| YCrCb 阈值 | 54.7% | 0.499 | 0.633 | 肤色固定阈值，过度分割 |
+| GMM 肤色 | 93.7% | 0.308 | 0.456 | 过度分割（覆盖率虚高）|
+| GrabCut | 28.9% | (reference) | (reference) | 伪标签来源 |
+| Watershed | 31.3% | 0.254 | 0.332 | 边界粗糙，分割质量差 |
+| **ResUNet（当前）** | **28.9%** | **0.855** | **0.877** | Apple M3 MPS 训练，最优 |
 
-> 数据来源：ResUNet 行来自 `data/results/eval_seg_dl_stats.txt`；Watershed IoU/Dice 来自同文件历史记录；YCrCb/GMM 前景占比来自 `data/results/eval_seg_traditional_stats.txt`（待 `make segment-skin` 后补充 IoU/Dice）
+> 数据来源：全部五行均来自 `data/results/eval_seg_dl_stats.txt`（20 样本随机评估，`make dl-eval-seg`）
 
-**分析**：ResUNet 以 GrabCut 为弱监督标签，最终与 GrabCut 的 IoU=0.807 / Dice=0.827，表明深度学习模型不仅学会了 GrabCut 的分割模式，还通过空间特征学习产生了更平滑的边界。Watershed 的 IoU=0.290 说明传统方法间差异显著，ResUNet 的边界质量远优于 Watershed。
+**分析**：ResUNet 以 GrabCut 为弱监督标签，最终与 GrabCut 的 IoU=0.855 / Dice=0.877，表明深度学习模型不仅学会了 GrabCut 的分割模式，还通过空间特征学习产生了更平滑的边界。YCrCb（IoU=0.499）和 GMM（IoU=0.308）因过度分割（前景占比 54.7%/93.7%）与 GrabCut 差距明显；Watershed（IoU=0.254）边界质量最差。ResUNet 全面优于所有传统方法。
 
 ### 4.5 验证
 
@@ -808,13 +810,13 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 
 | 方法 | 前景占比均值 | IoU vs GrabCut | Dice vs GrabCut | 说明 |
 |------|------------|--------------|----------------|------|
-| YCrCb 阈值 | 51.5% | — | — | 固定肤色阈值，速度最快 |
-| GMM | 96.4% | — | — | 过度分割，覆盖率虚高 |
-| GrabCut | 23.6% | (参考) | (参考) | 边界最优，用作 ResUNet 伪标签 |
-| Watershed | 35.0% | 0.290 | 0.377 | 边界粗糙，与 GrabCut 差距大 |
-| **ResUNet（当前）** | **27.9%** | **0.807** | **0.827** | DL 方法，边界最平滑 |
+| YCrCb 阈值 | 54.7% | 0.499 | 0.633 | 固定肤色阈值，过度分割 |
+| GMM | 93.7% | 0.308 | 0.456 | 过度分割，覆盖率虚高 |
+| GrabCut | 28.9% | (参考) | (参考) | 边界最优，用作 ResUNet 伪标签 |
+| Watershed | 31.3% | 0.254 | 0.332 | 边界粗糙，与 GrabCut 差距大 |
+| **ResUNet（当前）** | **28.9%** | **0.855** | **0.877** | DL 方法，边界最平滑 |
 
-> 数据来源：ResUNet/Watershed/GrabCut 行 → `data/results/eval_seg_dl_stats.txt`；YCrCb/GMM 前景占比 → 历史数据，IoU/Dice 待 `make segment-skin && make dl-eval-seg` 后补充
+> 数据来源：全部五行均来自 `data/results/eval_seg_dl_stats.txt`（`make dl-eval-seg`，20 样本随机评估）
 
 ---
 
