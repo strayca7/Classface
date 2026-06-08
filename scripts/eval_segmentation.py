@@ -33,8 +33,8 @@ MASK_DIRS = {
 }
 METHODS = list(MASK_DIRS.keys())
 
-OUT_FIGURE = Path("data/results/figures/segmentation_compare.png")
-OUT_STATS = Path("data/results/segmentation_stats.txt")
+OUT_FIGURE = Path("data/results/figures/plot_seg_traditional.png")
+OUT_STATS = Path("data/results/eval_seg_traditional_stats.txt")
 
 
 def load_mask(src_path: Path, src_dir: Path, mask_dir: Path) -> np.ndarray | None:

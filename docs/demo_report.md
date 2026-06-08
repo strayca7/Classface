@@ -101,7 +101,7 @@
 
 **训练策略**：以 GrabCut 输出作为弱监督伪标签，训练 20 epoch，最优 checkpoint val Dice = **0.8729**（epoch 17）。
 
-![ResUNet 训练曲线](figures/dl_train_curve.png)
+![ResUNet 训练曲线](figures/plot_train_resunet.png)
 
 | Epoch | Train Loss | Val Loss | Val Dice |
 |-------|-----------|---------|---------|
@@ -113,7 +113,7 @@
 
 **推理结果**：9,164/9,164 张成功，前景占比 27.9%，IoU vs GrabCut = **0.807**，Dice = **0.827**。
 
-![ResUNet 分割可视化](figures/dl_segmentation_compare.png)
+![ResUNet 分割可视化](figures/plot_seg_dl_compare.png)
 
 ### 4.2 传统方法历史数据（对比基线）
 
@@ -147,7 +147,7 @@
 
 ### 5.2 全量结果
 
-![识别准确率对比](figures/demo_accuracy_compare.png)
+![识别准确率对比](figures/demo_plot_compare_v3_full.png)
 
 **整体准确率**（全量，1,680 身份）：
 
@@ -182,7 +182,7 @@ InsightFace 训练于完整对齐的 112×112 人脸，对眼周局部裁剪图�
 
 ## 6. 级联策略优化分析
 
-![级联策略消融实验](figures/cascade_ablation.png)
+![级联策略消融实验](figures/plot_cascade_v123_50s.png)
 
 ### 6.1 三轮优化迭代
 
@@ -237,7 +237,7 @@ pred = cosine_top1(full_face_emb, gallery)   # 就是 B
 
 ## 6.5 全量评估结果汇总
 
-![全量与50样本对比](figures/cascade_fullrun_compare.png)
+![全量与50样本对比](figures/plot_cascade_fullvs50s.png)
 
 ### 整体准确率（全量 vs 50 样本）
 

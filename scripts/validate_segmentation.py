@@ -34,8 +34,8 @@ MASK_DIRS = {
     "Watershed": Path("data/segmented/watershed"),
 }
 GMM_MODEL_PATH = Path("data/features/gmm_skin.pkl")
-FIGURE_PATH = Path("data/results/figures/segmentation_compare.png")
-STATS_PATH = Path("data/results/segmentation_stats.txt")
+FIGURE_PATH = Path("data/results/figures/plot_seg_traditional.png")
+STATS_PATH = Path("data/results/eval_seg_traditional_stats.txt")
 
 MIN_MASKS = 100
 SAMPLE_PER_DIR = 50

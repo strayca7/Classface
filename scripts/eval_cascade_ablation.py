@@ -7,8 +7,8 @@
   v3: L1_HIGH=-1.0, 禁用 L2（最优策略）
 
 输出：
-  data/results/cascade_ablation.txt     详细数值
-  data/results/figures/cascade_ablation.png  可视化图表
+  data/results/eval_cascade_v123_50s.txt     详细数值
+  data/results/figures/plot_cascade_v123_50s.png  可视化图表
 
 用法：
     uv run python scripts/eval_cascade_ablation.py [--limit N]
@@ -260,7 +260,7 @@ def run(limit: int | None) -> None:
     ]
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = RESULTS_DIR / "cascade_ablation.txt"
+    out = RESULTS_DIR / "eval_cascade_v123_50s.txt"
     out.write_text("\n".join(lines) + "\n")
     log.info("结果写入 %s", out)
 
@@ -335,7 +335,7 @@ def _plot(data: dict, occ_types: list) -> None:
     ax2.legend(fontsize=9)
 
     fig.tight_layout()
-    out = FIGURES_DIR / "cascade_ablation.png"
+    out = FIGURES_DIR / "plot_cascade_v123_50s.png"
     fig.savefig(out, dpi=150, bbox_inches="tight", facecolor=GREY_BG)
     plt.close(fig)
     log.info("图表保存至 %s", out)

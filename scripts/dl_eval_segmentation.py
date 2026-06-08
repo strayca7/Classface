@@ -5,8 +5,8 @@ Usage:
   uv run python scripts/dl_eval_segmentation.py [--n N]
 
 Outputs:
-  data/results/figures/dl_segmentation_compare.png  — 6-column visual comparison
-  data/results/dl_segmentation_stats.txt            — IoU / Dice / fg_ratio per method
+  data/results/figures/plot_seg_dl_compare.png  — 6-column visual comparison
+  data/results/eval_seg_dl_stats.txt            — IoU / Dice / fg_ratio per method
 """
 
 import argparse
@@ -155,7 +155,7 @@ def evaluate(args: argparse.Namespace) -> None:
 
     plt.suptitle("Segmentation Comparison: Traditional vs Deep Learning (U-Net)", fontsize=9, y=1.01)
     plt.tight_layout()
-    out_fig = FIGURES_DIR / "dl_segmentation_compare.png"
+    out_fig = FIGURES_DIR / "plot_seg_dl_compare.png"
     fig.savefig(out_fig, dpi=300, bbox_inches="tight")
     plt.close(fig)
     logger.info("Saved: %s", out_fig)
@@ -175,7 +175,7 @@ def evaluate(args: argparse.Namespace) -> None:
     report = "\n".join(lines)
     print(report)
 
-    out_txt = RESULTS_DIR / "dl_segmentation_stats.txt"
+    out_txt = RESULTS_DIR / "eval_seg_dl_stats.txt"
     with open(out_txt, "w") as f:
         f.write(report + "\n")
     logger.info("Stats saved: %s", out_txt)
@@ -191,7 +191,7 @@ def evaluate(args: argparse.Namespace) -> None:
     ax.set_ylim(0, 110)
     ax.grid(axis="y", alpha=0.3)
     plt.tight_layout()
-    out_bar = FIGURES_DIR / "dl_fg_ratio_compare.png"
+    out_bar = FIGURES_DIR / "plot_seg_fg_ratio.png"
     fig2.savefig(out_bar, dpi=300, bbox_inches="tight")
     plt.close(fig2)
     logger.info("Bar chart saved: %s", out_bar)

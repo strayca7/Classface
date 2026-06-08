@@ -180,6 +180,8 @@ return cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
 | 输出尺寸 | 全部 112×112×3 BGR |
 | 耗时 | 约 1m33s（CPU） |
 
+> 数据来源：控制台输出（`make preprocess`）
+
 ---
 
 ## 四、第二阶段：图像分割（深度学习 + 传统方法对比）
@@ -245,7 +247,7 @@ return cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
 
 训练曲线如下图所示。训练损失从 epoch 1 的 0.393 单调下降至 epoch 20 的 0.046，验证损失在 epoch 7（0.186）后趋于收敛；验证 Dice 在 epoch 17 达到最高值 **0.8729**，保存为最佳 checkpoint。
 
-![ResUNet 训练曲线](figures/dl_train_curve.png)
+![ResUNet 训练曲线](figures/plot_train_resunet.png)
 
 | Epoch | Train Loss | Val Loss | Val Dice | 备注 |
 |-------|-----------|---------|---------|------|
@@ -256,17 +258,21 @@ return cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
 | **17** | **0.0481** | **0.1909** | **0.8729** | **最优 checkpoint** |
 | 20 | 0.0455 | 0.1937 | 0.8695 | 轻微过拟合 |
 
+> 数据来源：`data/results/train_log_resunet.txt`
+
 #### 4.2.5 推理结果
 
 - 批量推理 **9,164/9,164** 张成功，0 失败
 - 前景像素均值占比：**27.9%**（与 GrabCut 伪标签 23.6% 相近，符合弱监督预期）
 - 对比伪标签：IoU = **0.807**，Dice = **0.827**（高度一致，且边界更平滑）
 
+> 数据来源：`data/results/eval_seg_dl_stats.txt`
+
 可视化对比图（原图 | GrabCut 伪标签 | U-Net 输出 | 差异图）：
 
-![ResUNet 分割可视化](figures/dl_segmentation_compare.png)
+![ResUNet 分割可视化](figures/plot_seg_dl_compare.png)
 
-![前景占比对比](figures/dl_fg_ratio_compare.png)
+![前景占比对比](figures/plot_seg_fg_ratio.png)
 
 ---
 
@@ -337,7 +343,7 @@ skin_comp = int(np.argmax(gmm.means_[:, 1]))
 | GrabCut | **23.6%** | 14.7% | 0.0% | 43.9% |
 | Watershed | **35.0%** | 10.4% | 15.7% | 53.4% |
 
-可视化对比图：`data/results/figures/segmentation_compare.png`（300 dpi，5 列并排：原图 | YCrCb | GMM | GrabCut | Watershed）
+可视化对比图：`data/results/figures/plot_seg_traditional.png`（300 dpi，5 列并排：原图 | YCrCb | GMM | GrabCut | Watershed）
 
 **分析**：
 - YCrCb 覆盖率约 50%，较精准识别皮肤区域，边界较粗糙
@@ -354,6 +360,8 @@ skin_comp = int(np.argmax(gmm.means_[:, 1]))
 | GrabCut | 23.6% | (reference) | (reference) | 伪标签来源 |
 | Watershed | 35.0% | 0.290 | 0.377 | 历史数据 |
 | **ResUNet（当前）** | **27.9%** | **0.807** | **0.827** | Apple M3 MPS 训练 |
+
+> 数据来源：ResUNet 行来自 `data/results/eval_seg_dl_stats.txt`；Watershed IoU/Dice 来自同文件历史记录；YCrCb/GMM 前景占比来自 `data/results/eval_seg_traditional_stats.txt`（待 `make segment-skin` 后补充 IoU/Dice）
 
 **分析**：ResUNet 以 GrabCut 为弱监督标签，最终与 GrabCut 的 IoU=0.807 / Dice=0.827，表明深度学习模型不仅学会了 GrabCut 的分割模式，还通过空间特征学习产生了更平滑的边界。Watershed 的 IoU=0.290 说明传统方法间差异显著，ResUNet 的边界质量远优于 Watershed。
 
@@ -439,13 +447,15 @@ ArcFace 嵌入已 L2 归一化，余弦相似度等价于点积，实际得分�
 | 总 query 数 | 7,484 |
 | 耗时 | 1908.4s（约 31m49s） |
 
+> 数据来源：`data/results/eval_baseline_full.txt`
+
 **50 身份抽样**（169 query）：
 
 | 指标 | 值 |
 |------|------|
 | Top-1 准确率 | **97.04%** (164/169) |
 
-> 全量（92.65%）低于抽样（97.04%）的原因：全量包含更多低质量、难以识别的图像对，抽样偏向数据质量较好的身份。
+> 数据来源：`data/results/eval_cascade_v123_50s.txt`（B 行，50 样本）
 
 ---
 
@@ -568,6 +578,8 @@ L1 全脸特征 → cosine_top1(gallery)
 | **B — 遮挡 Naive** | **89.11%** | 20,007 | 22,452 |
 | **C — 两级级联 v1** | **12.52%** | 2,812 | 22,452 |
 
+> 数据来源：`data/results/eval_compare_v1_full.txt`
+
 各遮挡类型 B vs C 细分（全量，n=7,484/type）：
 
 | 遮挡类型 | B（Naive） | C（级联 v1） | Δ |
@@ -576,9 +588,11 @@ L1 全脸特征 → cosine_top1(gallery)
 | cup（水杯） | 87.85% | 17.45% | −70.40pp |
 | glasses（眼镜） | 90.69% | 11.89% | −78.80pp |
 
+> 数据来源：`data/results/eval_compare_v1_full.txt`
+
 ### 7.4b 级联消融实验（50 身份抽样）
 
-![级联策略消融实验](figures/cascade_ablation.png)
+![级联策略消融实验](figures/plot_cascade_v123_50s.png)
 
 50 身份快速验证（B + v1 + v2 + v3 同一次提取循环，结果可直接对比）：
 
@@ -588,6 +602,8 @@ L1 全脸特征 → cosine_top1(gallery)
 | **C v1** (L1_HIGH=0.80, replace) | **12.43%** | 9.47% | 17.16% | 10.65% |
 | **C v2** (L1_HIGH=0.50, best-of-two) | **47.93%** | 44.97% | 44.38% | 54.44% |
 | **C v3** (L1_HIGH=−1, 禁用L2) | **92.70%** | 94.67% | 89.94% | 93.49% |
+
+> 数据来源：`data/results/eval_cascade_v123_50s.txt`（`make eval-cascade` 50 样本）
 
 ### 7.5 失败原因分析：为什么 C=12.52%？
 
@@ -732,7 +748,7 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 
 ## 七（续）、全量评估结果汇总（v1/v2/v3）
 
-![级联策略全量与50样本对比](figures/cascade_fullrun_compare.png)
+![级联策略全量与50样本对比](figures/plot_cascade_fullvs50s.png)
 
 以下汇总所有已完成的全量评估（1,680 身份，22,452 张遮挡图像）与 50 身份抽样结果，未运行的实验标记为"—"。
 
@@ -745,6 +761,8 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 | **C v2** (L1=0.50) | 47.93% | **—** | ❌ 未运行 | 全量预计 >97 min |
 | **C v3** (L1=−1) | 92.70% | **89.11%** | ✅ 已完成 | = B，最优策略 |
 
+> 数据来源：50 样本列 → `data/results/eval_cascade_v123_50s.txt`；全量 v1 → `data/results/eval_compare_v1_full.txt`；全量 v3 → `data/results/eval_compare_v3_full.txt`
+
 ### 各遮挡类型全量细分
 
 | 遮挡类型 | B Naive | C v1（全量） | C v2（全量） | C v3（全量） |
@@ -753,6 +771,8 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 | cup | 87.85% | **17.45%** | — | **87.85%** |
 | glasses | 90.69% | **11.89%** | — | **90.69%** |
 | **整体** | **89.11%** | **12.52%** | **—** | **89.11%** |
+
+> 数据来源：v1 全量 → `data/results/eval_compare_v1_full.txt`；v3 全量 → `data/results/eval_compare_v3_full.txt`；v2 全量待运行后填入
 
 > v2 全量实验预计耗时约 97+ min（CPU），与 v3 全量耗时相当。根据 50 样本趋势（47.93%），v2 全量结果预计接近 45–50%，仍远低于 B，因此未继续运行。
 
@@ -782,6 +802,8 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 | 遮挡图像（全量） | 级联 v1（L1_HIGH=0.8） | **12.52%** | 阈值错误 |
 | 遮挡图像（全量） | 级联 v3（L1_HIGH=-1） | **89.11%** | = B，最优 ✅ |
 
+> 数据来源：基线 → `data/results/eval_baseline_full.txt`；v1/v3 全量 → `eval_compare_v1_full.txt` / `eval_compare_v3_full.txt`
+
 ### 8.3 图像分割结果（五种方法对比）
 
 | 方法 | 前景占比均值 | IoU vs GrabCut | Dice vs GrabCut | 说明 |
@@ -791,6 +813,8 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 | GrabCut | 23.6% | (参考) | (参考) | 边界最优，用作 ResUNet 伪标签 |
 | Watershed | 35.0% | 0.290 | 0.377 | 边界粗糙，与 GrabCut 差距大 |
 | **ResUNet（当前）** | **27.9%** | **0.807** | **0.827** | DL 方法，边界最平滑 |
+
+> 数据来源：ResUNet/Watershed/GrabCut 行 → `data/results/eval_seg_dl_stats.txt`；YCrCb/GMM 前景占比 → 历史数据，IoU/Dice 待 `make segment-skin && make dl-eval-seg` 后补充
 
 ---
 

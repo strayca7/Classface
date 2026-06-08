@@ -24,7 +24,7 @@
 【evaluate.py --mode baseline】
     query 图像 → 同样流水线 → 余弦相似度检索 → Top-1 预测
     │
-    └─ data/results/baseline_accuracy.txt
+    └─ data/results/eval_baseline_full.txt
 ```
 
 ---

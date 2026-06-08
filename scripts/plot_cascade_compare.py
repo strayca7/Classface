@@ -2,12 +2,12 @@
 生成级联策略全量 vs 50样本对比图表。
 
 数据来源：
-  50样本: data/results/cascade_ablation.txt (B/v1/v2/v3)
-  全量:   data/results/compare_accuracy_v1.txt (v1)
-          data/results/compare_accuracy.txt    (v3, L1_HIGH=-1)
+  50样本: data/results/eval_cascade_v123_50s.txt (B/v1/v2/v3)
+  全量:   data/results/eval_compare_v1_full.txt (v1)
+          data/results/eval_compare_v3_full.txt    (v3, L1_HIGH=-1)
 
 输出：
-  docs/figures/cascade_fullrun_compare.png
+  docs/figures/plot_cascade_fullvs50s.png
 """
 
 from pathlib import Path
@@ -26,7 +26,7 @@ import matplotlib.patches as mpatches
 import numpy as np
 
 RESULTS_DIR = Path("data/results")
-OUT = Path("docs/figures/cascade_fullrun_compare.png")
+OUT = Path("docs/figures/plot_cascade_fullvs50s.png")
 
 # ── colours ───────────────────────────────────────────────────────────────────
 C = {
@@ -39,10 +39,10 @@ GREY_BG = "#F8F9FA"
 OCC_TYPES = ["sunglasses", "cup", "glasses"]
 OCC_LABELS = ["Sunglasses\n(墨镜)", "Cup\n(水杯)", "Glasses\n(眼镜)"]
 
-# ── load 50-sample from cascade_ablation.txt ─────────────────────────────────
+# ── load 50-sample from eval_cascade_v123_50s.txt ─────────────────────────────────
 def load_ablation() -> dict:
     """Returns {key: {all, sunglasses, cup, glasses}} for B/v1/v2/v3."""
-    txt = (RESULTS_DIR / "cascade_ablation.txt").read_text()
+    txt = (RESULTS_DIR / "eval_cascade_v123_50s.txt").read_text()
     data = {}
     key_map = {
         "B Naive": "B",
@@ -82,11 +82,11 @@ def load_full(path: Path) -> dict:
 def main():
     abl = load_ablation()
 
-    full_v1 = load_full(RESULTS_DIR / "compare_accuracy_v1.txt")
-    full_v3 = load_full(RESULTS_DIR / "compare_accuracy.txt")
+    full_v1 = load_full(RESULTS_DIR / "eval_compare_v1_full.txt")
+    full_v3 = load_full(RESULTS_DIR / "eval_compare_v3_full.txt")
 
     # Also load B full-run per-type from v3 file (B col)
-    txt_v3 = (RESULTS_DIR / "compare_accuracy.txt").read_text()
+    txt_v3 = (RESULTS_DIR / "eval_compare_v3_full.txt").read_text()
     full_B = {"all": 0.8911}
     for occ in OCC_TYPES:
         m = re.search(rf"{occ}.*?B=([\d.]+)", txt_v3)

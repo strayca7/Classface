@@ -19,8 +19,8 @@
     └─ 方法 D：Watershed 分割（标记分水岭）──► data/segmented/watershed/
                 │
                 ▼
-    对比评估 → data/results/figures/segmentation_compare.png
-               data/results/segmentation_stats.txt
+    对比评估 → data/results/figures/plot_seg_traditional.png
+               data/results/eval_seg_traditional_stats.txt
 ```
 
 ---

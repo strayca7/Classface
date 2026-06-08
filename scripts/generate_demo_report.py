@@ -273,7 +273,7 @@ def generate_accuracy_chart() -> None:
     ax2.legend(fontsize=10)
 
     fig.tight_layout()
-    out = FIGS / "demo_accuracy_compare.png"
+    out = FIGS / "demo_plot_compare_v3_full.png"
     fig.savefig(out, dpi=DPI, bbox_inches="tight", facecolor=GREY_BG)
     plt.close(fig)
     log.info("Saved: %s", out)
@@ -513,7 +513,7 @@ REPORT_MD = """\
 
 ### 5.2 全量结果
 
-![识别准确率对比](figures/demo_accuracy_compare.png)
+![识别准确率对比](figures/demo_plot_compare_v3_full.png)
 
 **整体准确率**（全量，1,680 身份）：
 

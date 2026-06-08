@@ -1,5 +1,5 @@
 """
-Post-processing script: parse compare_accuracy.txt and update all reports.
+Post-processing script: parse eval_compare_v3_full.txt and update all reports.
 
 Run after `make eval-compare` completes:
     uv run python scripts/update_reports.py
@@ -224,9 +224,9 @@ def regenerate_charts() -> None:
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    result_path = RESULTS_DIR / "compare_accuracy.txt"
+    result_path = RESULTS_DIR / "eval_compare_v3_full.txt"
     if not result_path.exists():
-        log.error("compare_accuracy.txt not found — run `make eval-compare` first")
+        log.error("eval_compare_v3_full.txt not found — run `make eval-compare` first")
         sys.exit(1)
 
     r = parse_results(result_path)

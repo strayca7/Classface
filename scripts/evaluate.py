@@ -5,12 +5,12 @@
     uv run python scripts/evaluate.py --mode compare  [--limit N]
 
 输出（baseline）：
-    data/results/baseline_accuracy.txt
+    data/results/eval_baseline_full.txt
 
 输出（compare）：
-    data/results/compare_accuracy.txt
-    data/results/figures/accuracy_compare.png
-    data/results/figures/occlusion_type.png
+    data/results/eval_compare_v3_full.txt
+    data/results/figures/plot_compare_v3_full.png
+    data/results/figures/plot_occlusion_type_v3_full.png
 """
 
 import argparse
@@ -168,7 +168,7 @@ def run_baseline(args):
     log.info("基线评估完成：Top-1=%.4f（%d/%d），耗时 %.1fs", acc, correct, total, elapsed)
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = RESULTS_DIR / "baseline_accuracy.txt"
+    out = RESULTS_DIR / "eval_baseline_full.txt"
     out.write_text(
         f"Top-1 Accuracy: {acc:.4f} ({acc * 100:.2f}%)\n"
         f"Correct: {correct}\n"
@@ -214,7 +214,7 @@ def run_compare(args):
 
     # 组 A：基线（干净数据）
     log.info("=== 组 A：基线（干净数据）===")
-    baseline_file = RESULTS_DIR / "baseline_accuracy.txt"
+    baseline_file = RESULTS_DIR / "eval_baseline_full.txt"
     if baseline_file.exists():
         for line in baseline_file.read_text().splitlines():
             if line.startswith("Top-1 Accuracy"):
@@ -302,7 +302,7 @@ def run_compare(args):
 
     # 写入结果文件
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = RESULTS_DIR / "compare_accuracy.txt"
+    out = RESULTS_DIR / "eval_compare_v3_full.txt"
     lines = [
         f"Group A (Baseline, clean):  {acc_a:.4f} ({acc_a * 100:.2f}%)",
         f"Group B (Occluded, naive):  {acc_b:.4f} ({acc_b * 100:.2f}%) [{total_b_correct}/{total_b_total}]",
@@ -351,9 +351,9 @@ def _plot_compare(acc_a, acc_b, acc_c, results_b, results_c, occlusion_types):
     ax.set_title("Recognition Accuracy: Baseline vs Occluded vs Two-stage", fontsize=12)
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "accuracy_compare.png", dpi=300)
+    fig.savefig(FIGURES_DIR / "plot_compare_v3_full.png", dpi=300)
     plt.close(fig)
-    log.info("保存 accuracy_compare.png")
+    log.info("保存 plot_compare_v3_full.png")
 
     # 图2：各遮挡类型 B vs C 折线图
     if len(occlusion_types) >= 2:
@@ -375,9 +375,9 @@ def _plot_compare(acc_a, acc_b, acc_c, results_b, results_c, occlusion_types):
         ax.legend(fontsize=11)
         ax.grid(alpha=0.3)
         fig.tight_layout()
-        fig.savefig(FIGURES_DIR / "occlusion_type.png", dpi=300)
+        fig.savefig(FIGURES_DIR / "plot_occlusion_type_v3_full.png", dpi=300)
         plt.close(fig)
-        log.info("保存 occlusion_type.png")
+        log.info("保存 plot_occlusion_type_v3_full.png")
 
 
 # ---------------------------------------------------------------------------

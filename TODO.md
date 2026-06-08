@@ -50,7 +50,7 @@
 
 - [ ] **实现对比评估脚本**（`scripts/dl_eval_segmentation.py`）
     - 6 列可视化（原图 | YCrCb | GMM | GrabCut | Watershed | U-Net）
-    - IoU / Dice / 前景占比对比，保存至 `data/results/figures/dl_segmentation_compare.png`
+    - IoU / Dice / 前景占比对比，保存至 `data/results/figures/plot_seg_dl_compare.png`
 
 ### 工程规范
 
@@ -96,7 +96,7 @@
 - [x] **Gallery 特征库（重建）**：`make build-gallery`，1680 张，耗时 8m22s，输出 `data/features/gallery.npy`
 - [x] **基线评估（全量）**：`make eval-baseline`
     - 全量 7484 query，**Top-1 = 92.65%**（6934/7484），耗时 31m49s
-    - 输出：`data/results/baseline_accuracy.txt`
+    - 输出：`data/results/eval_baseline_full.txt`
 - [x] **眼周裁剪**：`make crop`
     - Gallery：1680 张，detect_ok=1632（97.1%）；Query：22,452 张，detect_ok=21,036（93.7%）
     - 耗时：102 min；输出：`data/cropped/`、`data/features/gallery_cropped.npy`
@@ -179,8 +179,8 @@ make dl-segment ARGS="--limit 100"
 ```bash
 make dl-eval-seg
 # 输出：
-#   data/results/figures/dl_segmentation_compare.png（6 列对比图）
-#   data/results/dl_segmentation_stats.txt（各方法 IoU/Dice 数据）
+#   data/results/figures/plot_seg_dl_compare.png（6 列对比图）
+#   data/results/eval_seg_dl_stats.txt（各方法 IoU/Dice 数据）
 ```
 
 ### 完整一键运行
@@ -220,12 +220,12 @@ make segment-skin
 # 步骤 2：重新跑五方法对比评估，更新 IoU / Dice 数据
 make dl-eval-seg
 # 输出：
-#   data/results/dl_segmentation_stats.txt  ← 查看此文件获取新数据
-#   data/results/figures/dl_fg_ratio_compare.png（更新）
-#   data/results/figures/dl_segmentation_compare.png（更新）
+#   data/results/eval_seg_dl_stats.txt  ← 查看此文件获取新数据
+#   data/results/figures/plot_seg_fg_ratio.png（更新）
+#   data/results/figures/plot_seg_dl_compare.png（更新）
 ```
 
-**运行后操作**：查看 `data/results/dl_segmentation_stats.txt`，将 YCrCb 和 GMM 的 IoU/Dice 值填入 `docs/report.md` §8.3 表格。
+**运行后操作**：查看 `data/results/eval_seg_dl_stats.txt`，将 YCrCb 和 GMM 的 IoU/Dice 值填入 `docs/report.md` §8.3 表格。
 
 ---
 
@@ -237,11 +237,11 @@ make dl-eval-seg
 
 **预计耗时**：约 100–130 min（CPU）；RTX 4060 约 10–15 min
 
-**注意**：`eval_cascade_ablation.py` 在同一个循环内同时跑 v1/v2/v3，运行后将**覆盖** `data/results/cascade_ablation.txt`（目前存有 50 样本结果）。建议先备份：
+**注意**：`eval_cascade_ablation.py` 在同一个循环内同时跑 v1/v2/v3，运行后将**覆盖** `data/results/eval_cascade_v123_50s.txt`（目前存有 50 样本结果）。建议先备份：
 
 ```bash
 # 可选：备份当前 50 样本结果
-cp data/results/cascade_ablation.txt data/results/cascade_ablation_50sample.txt
+cp data/results/eval_cascade_v123_50s.txt data/results/eval_cascade_v123_50s_backup.txt
 ```
 
 **运行命令**（取消 50 人限制，对全部 1680 身份运行 v1/v2/v3）：
@@ -250,11 +250,11 @@ cp data/results/cascade_ablation.txt data/results/cascade_ablation_50sample.txt
 uv run python scripts/eval_cascade_ablation.py --limit 0
 # --limit 0 等价于无限制（代码逻辑：if limit: identities = identities[:limit]，0 为 falsy 跳过截断）
 # 输出：
-#   data/results/cascade_ablation.txt     ← 全量 v1/v2/v3 数值
-#   data/results/figures/cascade_ablation.png（更新）
+#   data/results/eval_cascade_v123_50s.txt     ← 全量 v1/v2/v3 数值
+#   data/results/figures/plot_cascade_v123_50s.png（更新）
 ```
 
-**运行后操作**：查看 `data/results/cascade_ablation.txt` 中 v2 全量数据，填入 `docs/report.md` §七（续）以下位置：
+**运行后操作**：查看 `data/results/eval_cascade_v123_50s.txt` 中 v2 全量数据，填入 `docs/report.md` §七（续）以下位置：
 
 ```
 ### 整体准确率汇总  →  C v2 全量 列填入实际数值（预计 ~45–50%）

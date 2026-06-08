@@ -6,7 +6,7 @@ Usage:
 
 Outputs:
   data/features/unet_ckpt.pth   — best checkpoint (by val Dice)
-  data/results/dl_train_log.txt — per-epoch loss & Dice history
+  data/results/train_log_resunet.txt — per-epoch loss & Dice history
 """
 
 import argparse
@@ -200,7 +200,7 @@ def train(args: argparse.Namespace) -> None:
     scheduler = CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-6)
 
     ckpt_path = root / "data/features/unet_ckpt.pth"
-    log_path = root / "data/results/dl_train_log.txt"
+    log_path = root / "data/results/train_log_resunet.txt"
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
     best_val_dice = 0.0

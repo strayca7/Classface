@@ -223,7 +223,7 @@ def plot_segmentation() -> None:
     ax.yaxis.grid(True, linestyle="--", alpha=0.5, zorder=0)
     ax.set_axisbelow(True)
     fig.tight_layout()
-    savefig(fig, "fig5_segmentation_compare.png")
+    savefig(fig, "fig5_plot_seg_traditional.png")
 
 
 # ── 6. Summary dashboard ─────────────────────────────────────────────────────
@@ -313,11 +313,11 @@ def main() -> None:
     log.info("Generating experiment result charts → %s", OUT_DIR)
 
     # Check data availability
-    if not (RESULTS_DIR / "baseline_accuracy.txt").exists():
-        log.error("baseline_accuracy.txt not found — run `make eval-baseline` first")
+    if not (RESULTS_DIR / "eval_baseline_full.txt").exists():
+        log.error("eval_baseline_full.txt not found — run `make eval-baseline` first")
         sys.exit(1)
-    if not (RESULTS_DIR / "compare_accuracy_v1.txt").exists():
-        log.error("compare_accuracy_v1.txt not found — run `make eval-compare` first")
+    if not (RESULTS_DIR / "eval_compare_v1_full.txt").exists():
+        log.error("eval_compare_v1_full.txt not found — run `make eval-compare` first")
         sys.exit(1)
 
     plot_accuracy_overview()

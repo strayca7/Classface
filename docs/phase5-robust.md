@@ -77,9 +77,9 @@ uv run python scripts/evaluate.py --mode compare [--limit N]
 
 | 文件 | 内容 |
 |------|------|
-| `data/results/compare_accuracy.txt` | A/B/C 总体准确率 + 各遮挡类型细分 |
-| `data/results/figures/accuracy_compare.png` | 三组准确率柱状图（300 dpi） |
-| `data/results/figures/occlusion_type.png` | 各遮挡类型 B vs C 折线图（300 dpi） |
+| `data/results/eval_compare_v3_full.txt` | A/B/C 总体准确率 + 各遮挡类型细分 |
+| `data/results/figures/plot_compare_v3_full.png` | 三组准确率柱状图（300 dpi） |
+| `data/results/figures/plot_occlusion_type_v3_full.png` | 各遮挡类型 B vs C 折线图（300 dpi） |
 
 ---
 
@@ -105,7 +105,7 @@ make eval-compare ARGS="--limit 5"  # 调试评估
     ↓
 眼周裁剪（Phase 5 crop）→ gallery_cropped.npy / data/cropped/query/
     ↓
-两级级联评估（Phase 5 compare）→ compare_accuracy.txt + figures/
+两级级联评估（Phase 5 compare）→ eval_compare_v3_full.txt + figures/
 ```
 
 ---
