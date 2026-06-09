@@ -345,7 +345,7 @@ skin_comp = int(np.argmax(gmm.means_[:, 1]))
 
 > 数据来源：`data/results/eval_seg_dl_stats.txt`（`make dl-eval-seg`）
 
-可视化对比图：`data/results/figures/plot_seg_traditional.png`（300 dpi，5 列并排：原图 | YCrCb | GMM | GrabCut | Watershed）
+可视化对比图：`figures/fig5_segmentation_compare.png`（300 dpi，5 列并排：原图 | YCrCb | GMM | GrabCut | Watershed）
 
 **分析**：
 - YCrCb 覆盖率约 50%，较精准识别皮肤区域，边界较粗糙
