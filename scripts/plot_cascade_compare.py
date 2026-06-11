@@ -42,7 +42,11 @@ OCC_LABELS = ["Sunglasses\n(墨镜)", "Cup\n(水杯)", "Glasses\n(眼镜)"]
 # ── load 50-sample from eval_cascade_v123_50s.txt ─────────────────────────────────
 def load_ablation() -> dict:
     """Returns {key: {all, sunglasses, cup, glasses}} for B/v1/v2/v3."""
-    txt = (RESULTS_DIR / "eval_cascade_v123_50s.txt").read_text()
+    # Use backup file (original 50-sample results); the primary file was overwritten by full-run
+    ablation_file = RESULTS_DIR / "eval_cascade_v123_50s_backup.txt"
+    if not ablation_file.exists():
+        ablation_file = RESULTS_DIR / "eval_cascade_v123_50s.txt"
+    txt = ablation_file.read_text()
     data = {}
     key_map = {
         "B Naive": "B",
@@ -84,6 +88,26 @@ def main():
 
     full_v1 = load_full(RESULTS_DIR / "eval_compare_v1_full.txt")
     full_v3 = load_full(RESULTS_DIR / "eval_compare_v3_full.txt")
+
+    # Load v2 full-run data from eval_cascade_v123_50s.txt (overwritten by full run)
+    full_v2 = None
+    full_abl_file = RESULTS_DIR / "eval_cascade_v123_50s.txt"
+    if full_abl_file.exists():
+        full_abl_txt = full_abl_file.read_text()
+        key_map_full = {
+            "C v2 (L1_HIGH=0.50, best-of-two)": "v2",
+        }
+        for line in full_abl_txt.splitlines():
+            for raw, key in key_map_full.items():
+                if raw in line:
+                    nums = re.findall(r"(\d+\.\d+)%", line)
+                    if len(nums) >= 4:
+                        full_v2 = {
+                            "all": float(nums[0]) / 100,
+                            "sunglasses": float(nums[1]) / 100,
+                            "cup": float(nums[2]) / 100,
+                            "glasses": float(nums[3]) / 100,
+                        }
 
     # Also load B full-run per-type from v3 file (B col)
     txt_v3 = (RESULTS_DIR / "eval_compare_v3_full.txt").read_text()
@@ -143,7 +167,7 @@ def main():
     full_overall = {
         "B": full_B["all"] * 100 if "all" in full_B else None,
         "v1": full_v1.get("all") * 100 if full_v1.get("all") else None,
-        "v2": None,   # not run
+        "v2": full_v2["all"] * 100 if full_v2 and full_v2.get("all") else None,
         "v3": full_v3.get("all") * 100 if full_v3.get("all") else None,
     }
     vals_full = [full_overall[k] for k in keys]
@@ -197,7 +221,7 @@ def main():
     full_per = {
         "B": {occ: full_B.get(occ) for occ in OCC_TYPES},
         "v1": {occ: full_v1.get(occ) for occ in OCC_TYPES},
-        "v2": {occ: None for occ in OCC_TYPES},
+        "v2": {occ: (full_v2.get(occ) if full_v2 else None) for occ in OCC_TYPES},
         "v3": {occ: full_v3.get(occ) for occ in OCC_TYPES},
     }
     grouped_bar(ax_bot_r, full_per, "各遮挡类型（全量，1,680 身份）", "⊘ = 未运行")

@@ -605,7 +605,7 @@ L1 全脸特征 → cosine_top1(gallery)
 | **C v2** (L1_HIGH=0.50, best-of-two) | **47.93%** | 44.97% | 44.38% | 54.44% |
 | **C v3** (L1_HIGH=−1, 禁用L2) | **92.70%** | 94.67% | 89.94% | 93.49% |
 
-> 数据来源：`data/results/eval_cascade_v123_50s.txt`（`make eval-cascade` 50 样本）
+> 数据来源：`data/results/eval_cascade_v123_50s_backup.txt`（50 样本消融实验；当前 `eval_cascade_v123_50s.txt` 已被全量运行结果覆盖，备份保留原 50 样本数据）
 
 ### 7.5 失败原因分析：为什么 C=12.52%？
 
@@ -763,7 +763,7 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 | **C v2** (L1=0.50) | 47.93% | **48.35%** | ✅ 已完成 | 全量耗时 ~100–130 min |
 | **C v3** (L1=−1) | 92.70% | **89.11%** | ✅ 已完成 | = B，最优策略 |
 
-> 数据来源：50 样本列 → `data/results/eval_cascade_v123_50s.txt`；全量 v1 → `data/results/eval_compare_v1_full.txt`；全量 v3 → `data/results/eval_compare_v3_full.txt`
+> 数据来源：50 样本列 → `data/results/eval_cascade_v123_50s_backup.txt`（原 50 样本消融结果）；全量 v1 → `data/results/eval_compare_v1_full.txt`；全量 v2/v3 → `data/results/eval_cascade_v123_50s.txt`（已全量运行覆盖）/ `data/results/eval_compare_v3_full.txt`
 
 ### 各遮挡类型全量细分
 
@@ -774,9 +774,7 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 | glasses | 90.69% | **11.89%** | 54.52% | **90.69%** |
 | **整体** | **89.11%** | **12.52%** | **48.35%** | **89.11%** |
 
-> 数据来源：v1 全量 → `data/results/eval_compare_v1_full.txt`；v2 全量 → `data/results/eval_cascade_v123_50s.txt`（已运行）；v3 全量 → `data/results/eval_compare_v3_full.txt`
-
-> 说明：已完成 v2 全量评估（1680 身份，写入 `data/results/eval_cascade_v123_50s.txt`），C v2 全量总体准确率 = 48.35%，各遮挡类型详见上表。
+> 数据来源：v1 全量 → `data/results/eval_compare_v1_full.txt`；v2 全量 → `data/results/eval_cascade_v123_50s.txt`（全量运行已完成，1,680 身份，覆盖原 50 样本文件）；v3 全量 → `data/results/eval_compare_v3_full.txt`
 
 ---
 
@@ -802,6 +800,7 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 | 干净图像（全量） | ArcFace 全脸 | **92.65%** | 基线 |
 | 遮挡图像（全量） | ArcFace 全脸（Naive） | **89.11%** | Δ = -3.54pp |
 | 遮挡图像（全量） | 级联 v1（L1_HIGH=0.8） | **12.52%** | 阈值错误 |
+| 遮挡图像（全量） | 级联 v2（L1_HIGH=0.5） | **48.35%** | best-of-two，仍低于B |
 | 遮挡图像（全量） | 级联 v3（L1_HIGH=-1） | **89.11%** | = B，最优 ✅ |
 
 > 数据来源：基线 → `data/results/eval_baseline_full.txt`；v1/v3 全量 → `eval_compare_v1_full.txt` / `eval_compare_v3_full.txt`
@@ -854,6 +853,6 @@ L1_HIGH 从 0.8 降到 -1，C 准确率从 12.52% 提升至 89.11%。**阈值选
 
 ---
 
-*报告生成时间：2026-05-14，最后更新：2026-06-08*  
+*报告生成时间：2026-05-14，最后更新：2026-06-11*  
 *当前项目版本：0.1.0*  
-*eval-compare v3 全量运行已完成（2026-05-14，历时约 97 min）*
+*eval-compare v3 全量运行已完成（2026-05-14，历时约 97 min）；eval-compare v2 全量已完成（写入 eval_cascade_v123_50s.txt）*
