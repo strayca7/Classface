@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>非标准遮挡人脸识别 · 答辩演示</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
+<style>
+  html { scroll-behavior: smooth; }
+  [x-cloak] { display: none !important; }
+  .fu { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .fu.vis { opacity: 1; transform: translateY(0); }
+  section { scroll-margin-top: 64px; }
+  .sidebar-link.active { background: #eff6ff; color: #2563eb; font-weight: 600; }
+  .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px;
+    font-size: 13px; color: #64748b; text-decoration: none; transition: all 0.2s; }
+  .sidebar-link:hover { background: #f1f5f9; color: #1e293b; }
+  .sidebar-num { display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%; background: #dbeafe;
+    color: #2563eb; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 12px 14px; text-align: center; box-shadow: 0 2px 8px rgba(37,99,235,.06); }
+  .stat-val { font-size: 18px; font-weight: 700; color: #2563eb; display: block; line-height: 1.2; }
+  .stat-lbl { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+  .pipeline-box { background: #fff; border: 2px solid #e2e8f0; border-radius: 10px;
+    padding: 12px 14px; min-width: 110px; text-align: center; transition: all 0.2s; }
+  .pipeline-box:hover { border-color: #2563eb; transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(37,99,235,.12); }
+  .iter-card { flex: 1; background: #fff; border-radius: 12px; padding: 18px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06); transition: transform 0.2s; }
+  .iter-card:hover { transform: translateY(-2px); }
+  .chart-wrap { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 20px; box-shadow: 0 2px 8px rgba(37,99,235,.06); }
+  .chart-title { font-size: 12px; font-weight: 600; color: #64748b; text-align: center;
+    margin-bottom: 12px; letter-spacing: 0.3px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f8faff; color: #64748b; font-weight: 600; padding: 10px 14px;
+    text-align: left; border-bottom: 2px solid #e2e8f0; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8faff; }
+  .best { color: #059669; font-weight: 700; }
+  .bad  { color: #dc2626; font-weight: 700; }
+  .warn { color: #d97706; font-weight: 700; }
+  @media (max-width: 768px) {
+    #sidebar { display: none; }
+    #content { margin-left: 0 !important; }
+  }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800" style="font-family:'PingFang SC','Microsoft YaHei','Inter',sans-serif">
+
+<!-- TOP NAV -->
+<nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 h-16 flex items-center px-6 gap-4 shadow-sm">
+  <div class="flex items-center gap-2 font-bold text-blue-600 text-base mr-4 whitespace-nowrap">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+    </svg>
+    非标准遮挡人脸识别
+  </div>
+  <span class="text-slate-300 text-sm hidden sm:block">数字图像处理课程设计</span>
+  <div class="ml-auto flex items-center gap-2 text-xs text-slate-500">
+    <span class="bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-full font-medium">基线 92.65%</span>
+    <span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full font-medium">Dice 0.8729</span>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside id="sidebar" class="fixed top-16 left-0 bottom-0 w-52 bg-white border-r border-slate-200 overflow-y-auto z-40 flex flex-col">
+  <div class="p-4 flex-1">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-2">项目阶段</p>
+    <nav class="flex flex-col gap-1">
+      <a href="#overview"    class="sidebar-link" id="ln-overview">   <span class="sidebar-num">0</span>总览</a>
+      <a href="#preprocess"  class="sidebar-link" id="ln-preprocess"> <span class="sidebar-num">1</span>数据预处理</a>
+      <a href="#segment"     class="sidebar-link" id="ln-segment">    <span class="sidebar-num">2</span>图像分割</a>
+      <a href="#baseline"    class="sidebar-link" id="ln-baseline">   <span class="sidebar-num">3</span>基线识别</a>
+      <a href="#synthesis"   class="sidebar-link" id="ln-synthesis">  <span class="sidebar-num">4</span>遮挡合成</a>
+      <a href="#cascade"     class="sidebar-link" id="ln-cascade">    <span class="sidebar-num">5</span>级联实验</a>
+      <a href="#conclusion"  class="sidebar-link" id="ln-conclusion"> <span class="sidebar-num">6</span>结论展望</a>
+    </nav>
+
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-3 px-2">关键结果</p>
+    <div class="flex flex-col gap-2 px-1">
+      <div class="stat-card">
+        <span class="stat-val" style="color:#059669">92.65%</span>
+        <div class="stat-lbl">基线 Top-1 准确率</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-val">0.8729</span>
+        <div class="stat-lbl">ResUNet Val Dice</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-val" style="color:#d97706">89.11%</span>
+        <div class="stat-lbl">遮挡场景最优</div>
+      </div>
+    </div>
+  </div>
+  <div class="p-4 border-t border-slate-100 text-xs text-slate-400 text-center">
+    LFW · 1680 身份 · 5阶段流水线
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<div id="content" class="ml-52 pt-16">
+<main class="max-w-4xl mx-auto px-8 py-10">
+
+<!-- ===== S1 OVERVIEW ===== -->
+<section id="overview" class="mb-16">
+  <div class="fu bg-gradient-to-br from-blue-50 via-blue-100 to-sky-50 border border-blue-200 rounded-2xl p-8 mb-8">
+    <h1 class="text-2xl font-bold text-slate-800 mb-2">非标准遮挡人脸识别</h1>
+    <p class="text-slate-500 text-sm mb-1">数字图像处理课程设计 · 智慧课堂 / 考场 / 自习室无感签到场景</p>
+    <p class="text-slate-500 text-sm">研究水杯遮挡、普通眼镜、墨镜三类真实课堂遮挡对人脸识别准确率的影响，并探索级联分割-识别策略的改进效果。</p>
+  </div>
+
+  <div class="fu flex items-center overflow-x-auto gap-0 mb-8 pb-2">
+    <div class="pipeline-box"><div class="text-xs text-blue-600 font-bold tracking-wide mb-1">PHASE 1</div><div class="text-sm font-semibold mb-1">数据预处理</div><div class="text-xs text-slate-400 leading-tight">YCrCb均衡化<br>Haar对齐→112²</div></div>
+    <div class="text-blue-300 text-xl px-2 flex-shrink-0">→</div>
+    <div class="pipeline-box"><div class="text-xs text-blue-600 font-bold tracking-wide mb-1">PHASE 2</div><div class="text-sm font-semibold mb-1">图像分割</div><div class="text-xs text-slate-400 leading-tight">ResUNet<br>+4种传统方法</div></div>
+    <div class="text-blue-300 text-xl px-2 flex-shrink-0">→</div>
+    <div class="pipeline-box"><div class="text-xs text-blue-600 font-bold tracking-wide mb-1">PHASE 3</div><div class="text-sm font-semibold mb-1">基线识别</div><div class="text-xs text-slate-400 leading-tight">ArcFace 512-d<br>余弦相似度</div></div>
+    <div class="text-blue-300 text-xl px-2 flex-shrink-0">→</div>
+    <div class="pipeline-box"><div class="text-xs text-blue-600 font-bold tracking-wide mb-1">PHASE 4</div><div class="text-sm font-semibold mb-1">遮挡合成</div><div class="text-xs text-slate-400 leading-tight">5-kps锚点<br>Alpha融合</div></div>
+    <div class="text-blue-300 text-xl px-2 flex-shrink-0">→</div>
+    <div class="pipeline-box"><div class="text-xs text-blue-600 font-bold tracking-wide mb-1">PHASE 5</div><div class="text-sm font-semibold mb-1">级联实验</div><div class="text-xs text-slate-400 leading-tight">A/B/C三组<br>3轮迭代</div></div>
+  </div>
+
+  <div class="fu grid grid-cols-3 sm:grid-cols-6 gap-3 mb-8">
+    <div class="stat-card"><span class="stat-val">1,680</span><div class="stat-lbl">有效身份</div></div>
+    <div class="stat-card"><span class="stat-val">7,484</span><div class="stat-lbl">查询图像</div></div>
+    <div class="stat-card"><span class="stat-val">22,452</span><div class="stat-lbl">合成遮挡图</div></div>
+    <div class="stat-card"><span class="stat-val" style="color:#059669">92.65%</span><div class="stat-lbl">基线 Top-1</div></div>
+    <div class="stat-card"><span class="stat-val" style="color:#d97706">89.11%</span><div class="stat-lbl">遮挡 Naive</div></div>
+    <div class="stat-card"><span class="stat-val">0.8729</span><div class="stat-lbl">ResUNet Dice</div></div>
+  </div>
+
+  <div class="fu chart-wrap max-w-xl">
+    <div class="chart-title">A / B / C 三组整体准确率对比</div>
+    <canvas id="cOverview" height="160"></canvas>
+  </div>
+  <div class="fu mt-6">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">全实验流水线总览仪表盘</p>
+    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <img src="../docs/figures/fig0_dashboard.png" alt="实验总览仪表盘" class="w-full object-contain max-h-72">
+      <p class="text-xs text-slate-400 text-center py-2 bg-slate-50 border-t border-slate-100">五阶段核心指标一览 — 分割 Dice / 基线准确率 / 遮挡识别率 / 级联迭代</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== S2 PREPROCESSING ===== -->
+<section id="preprocess" class="mb-16 border-t border-slate-200 pt-12">
+  <h2 class="fu text-2xl font-bold mb-1"><span class="text-blue-600">#1</span> 数据预处理</h2>
+  <p class="fu text-slate-500 text-sm mb-8">三步标准化流水线 · 光照归一化 → 人脸对齐 → 112×112 裁剪 · 原始 LFW 5749 身份筛选至 1680</p>
+  <p class="fu text-slate-600 text-sm mb-6 leading-relaxed">
+    LFW（Labeled Faces in the Wild）是人脸识别领域的标准基准数据集。原始数据包含 5749 个身份 13,233 张图像，我们按照
+    <strong class="text-slate-800">每人至少 2 张</strong>的条件筛选出 1680 个身份，保证 Gallery（底库）和 Query（查询集）均有样本。
+    预处理的核心目标是消除光照差异和姿态差异，将每张图像标准化为 ArcFace 模型所要求的 112×112 对齐人脸格式。
+  </p>
+  <div class="fu grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <h3 class="font-semibold text-slate-700 mb-4">处理流程详解</h3>
+      <table>
+        <tr><th>步骤</th><th>方法</th><th>目的</th></tr>
+        <tr><td>① 光照归一化</td><td>YCrCb 仅均衡 Y 通道</td><td>消除过曝暗部，无色偏</td></tr>
+        <tr><td>② 人脸对齐</td><td>Haar 双眼检测 + warpAffine</td><td>旋转摆正，统一姿态</td></tr>
+        <tr><td>③ 裁剪缩放</td><td>双眼中点锚点 + 双线性插值</td><td>输出 112×112（ArcFace 标准）</td></tr>
+      </table>
+      <p class="text-xs text-slate-400 mt-3">检测失败时自动退化为<strong class="text-slate-600">中心裁剪</strong>兜底，13,233 张图像零遗漏。</p>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <h3 class="font-semibold text-slate-700 mb-4">关键指标</h3>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div class="stat-card"><span class="stat-val" style="color:#059669">100%</span><div class="stat-lbl">处理成功率</div></div>
+        <div class="stat-card"><span class="stat-val" style="color:#d97706">46.6%</span><div class="stat-lbl">双眼检测率</div></div>
+        <div class="stat-card"><span class="stat-val">4.0°</span><div class="stat-lbl">平均旋转角</div></div>
+        <div class="stat-card"><span class="stat-val">1,680</span><div class="stat-lbl">筛选后身份数</div></div>
+      </div>
+      <p class="text-xs text-slate-400 leading-relaxed">Haar 检测率偏低（46.6%）主要源于 LFW 中大量侧脸、遮挡和低分辨率图像。中心裁剪兜底保证了处理完整性，但可能引入轻微姿态偏差。</p>
+    </div>
+  </div>
+  <div class="fu mt-6">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">预处理效果示例</p>
+    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <img src="../docs/figures/demo_strip_all.png" alt="预处理前后对比" class="w-full object-contain max-h-64">
+      <p class="text-xs text-slate-400 text-center py-2 bg-slate-50 border-t border-slate-100">原始图像 → YCrCb 光照均衡 → Haar 对齐裁剪 → 112×112 标准输出</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== S3 SEGMENTATION ===== -->
+<section id="segment" class="mb-16 border-t border-slate-200 pt-12">
+  <h2 class="fu text-2xl font-bold mb-1"><span class="text-blue-600">#2</span> 图像分割 <span class="inline-block text-xs font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded ml-2 align-middle">深度学习主线</span></h2>
+  <p class="fu text-slate-500 text-sm mb-6">ResUNet（ResNet-18 编码器 + U-Net 解码器）弱监督训练 · GrabCut 伪标签 · 4种传统方法对比基线</p>
+  <p class="fu text-slate-600 text-sm mb-6 leading-relaxed">
+    图像分割的目标是将人脸图像的<strong class="text-slate-800">前景（人脸区域）</strong>与背景分离，为后续级联识别中的局部特征提取提供遮挡掩码。
+    由于缺乏人工标注的分割掩码，我们采用 <strong class="text-slate-800">GrabCut 自动生成伪标签</strong>进行弱监督训练。
+    ResUNet 结合了 ResNet-18 的残差特征提取能力与 U-Net 的跳跃连接上采样结构，在本任务上取得了 Val Dice = 0.8729 的成绩，
+    远优于四种传统方法。
+  </p>
+
+  <div x-data="{ tab: 'dl' }" class="fu mb-6">
+    <div class="flex gap-2 mb-4 border-b border-slate-200 pb-0">
+      <button @click="tab='dl'"
+        :class="tab==='dl' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700'"
+        class="px-4 py-2 text-sm transition-colors -mb-px bg-transparent border-0 cursor-pointer">
+        ResUNet 训练结果
+      </button>
+      <button @click="tab='arch'"
+        :class="tab==='arch' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700'"
+        class="px-4 py-2 text-sm transition-colors -mb-px bg-transparent border-0 cursor-pointer">
+        网络架构与训练策略
+      </button>
+      <button @click="tab='trad'"
+        :class="tab==='trad' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700'"
+        class="px-4 py-2 text-sm transition-colors -mb-px bg-transparent border-0 cursor-pointer">
+        传统方法对比
+      </button>
+      <button @click="tab='config'"
+        :class="tab==='config' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700'"
+        class="px-4 py-2 text-sm transition-colors -mb-px bg-transparent border-0 cursor-pointer">
+        训练配置
+      </button>
+    </div>
+
+    <div x-show="tab==='dl'" x-cloak class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="chart-wrap">
+        <div class="chart-title">ResUNet 训练曲线（Train Loss / Val Dice，共20个Epoch）</div>
+        <canvas id="cTrain" height="200"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">各方法前景占比（理想值约 28-32%）</div>
+        <canvas id="cFg" height="200"></canvas>
+      </div>
+    </div>
+
+    <div x-show="tab==='arch'" x-cloak class="space-y-5">
+      <!-- 网络结构流程图 -->
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 class="font-semibold text-slate-700 mb-3">ResUNet 网络结构（编码器 + 解码器 + 跳跃连接）</h3>
+        <div class="overflow-x-auto">
+          <div class="flex items-stretch gap-2 min-w-max text-xs">
+            <!-- 输入 -->
+            <div class="flex flex-col items-center justify-center bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-center min-w-20">
+              <div class="font-bold text-slate-600">输入</div>
+              <div class="text-slate-400">3×112×112</div>
+            </div>
+            <div class="flex items-center text-slate-300 text-lg">→</div>
+            <!-- 编码器 -->
+            <div class="flex flex-col gap-1">
+              <div class="text-xs font-bold text-blue-600 mb-1 text-center">编码器 (ResNet-18)</div>
+              <div class="bg-blue-50 border border-blue-200 rounded px-2 py-1 text-center">Stem → 56²×64</div>
+              <div class="bg-blue-100 border border-blue-300 rounded px-2 py-1 text-center">Layer1 → 28²×64</div>
+              <div class="bg-blue-200 border border-blue-400 rounded px-2 py-1 text-center">Layer2 → 14²×128</div>
+              <div class="bg-blue-300 border border-blue-500 rounded px-2 py-1 text-center text-white">Layer3 → 7²×256</div>
+              <div class="bg-blue-600 border border-blue-700 rounded px-2 py-1 text-center text-white font-bold">Layer4 → 4²×512</div>
+            </div>
+            <div class="flex items-center text-slate-300 text-lg">→</div>
+            <!-- 解码器 -->
+            <div class="flex flex-col gap-1">
+              <div class="text-xs font-bold text-green-600 mb-1 text-center">解码器 (U-Net)</div>
+              <div class="bg-green-50 border border-green-200 rounded px-2 py-1 text-center">↑×2 + skip → 56²×32</div>
+              <div class="bg-green-100 border border-green-300 rounded px-2 py-1 text-center">↑×2 + skip → 28²×64</div>
+              <div class="bg-green-200 border border-green-400 rounded px-2 py-1 text-center">↑×2 + skip → 14²×128</div>
+              <div class="bg-green-300 border border-green-500 rounded px-2 py-1 text-center text-white">↑×2 + skip → 7²×256</div>
+              <div class="bg-green-600 border border-green-700 rounded px-2 py-1 text-center text-white font-bold">瓶颈层 4²×512</div>
+            </div>
+            <div class="flex items-center text-slate-300 text-lg">→</div>
+            <!-- 输出 -->
+            <div class="flex flex-col items-center justify-center bg-green-50 border border-green-300 rounded-lg px-3 py-2 text-center min-w-24">
+              <div class="font-bold text-green-700">输出头</div>
+              <div class="text-slate-500">Conv(1×1)</div>
+              <div class="text-slate-500">Sigmoid</div>
+              <div class="font-bold text-green-600">1×112×112</div>
+              <div class="text-slate-400">二值掩膜</div>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-3">跳跃连接（skip connection）将编码器各层特征直接拼接到对应解码器层，保留边缘细节信息。总参数量 ~13.1M（ResNet-18 ~11.2M + 解码器 ~1.9M）。</p>
+      </div>
+
+      <!-- 弱监督训练策略 -->
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 class="font-semibold text-slate-700 mb-3">弱监督训练策略（GrabCut 伪标签）</h3>
+        <div class="flex flex-col md:flex-row gap-4">
+          <div class="flex-1">
+            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+              LFW 9,164 张人脸图像没有人工分割标注，直接人工标注成本极高。
+              我们采用 <strong class="text-slate-800">GrabCut 自动生成伪标签</strong>的弱监督方案：
+              GrabCut 边界质量最优（传统方法中），将其输出作为 ResUNet 的训练目标。
+            </p>
+            <div class="space-y-2 text-xs">
+              <div class="flex items-start gap-2">
+                <span class="bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 font-bold flex-shrink-0">Step 1</span>
+                <span class="text-slate-600">对全部 9,164 张图像运行 GrabCut（rect=(10,10,92,92)，迭代5次），生成伪标签掩膜</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 font-bold flex-shrink-0">Step 2</span>
+                <span class="text-slate-600">过滤前景率 &lt; 1% 的空掩膜（约 3%），避免错误标签污染训练</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 font-bold flex-shrink-0">Step 3</span>
+                <span class="text-slate-600">按 80/20 划分训练集 7,331 / 验证集 1,833，用 0.5×BCE + 0.5×Dice Loss 训练</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="bg-green-100 text-green-700 rounded px-1.5 py-0.5 font-bold flex-shrink-0">结果</span>
+                <span class="text-slate-600">Epoch 17 达到最优 val Dice=0.8729，IoU=0.855 vs GrabCut，边界更平滑</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex-1">
+            <p class="text-xs font-semibold text-slate-500 mb-2">损失函数设计</p>
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 font-mono text-xs text-slate-700 leading-relaxed">
+              Loss = 0.5 × BCE(pred, label)<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ 0.5 × DiceLoss(pred, label)<br><br>
+              DiceLoss = 1 − (2×|pred∩label| + ε)<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ (|pred| + |label| + ε)
+            </div>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+              <strong class="text-slate-600">BCE</strong>：逐像素稳定梯度；
+              <strong class="text-slate-600">Dice Loss</strong>：关注前景重叠，对类别不均衡鲁棒（前景仅占 28.9%）。两者互补。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="tab==='trad'" x-cloak>
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm mb-4">
+        <p class="text-xs text-slate-500 leading-relaxed mb-4">四种传统方法均以 GrabCut 输出为参考基准（IoU/Dice 对比标准），各有其适用场景和局限性。</p>
+        <table>
+          <tr><th>方法</th><th>前景占比</th><th>IoU vs GrabCut</th><th>Dice vs GrabCut</th><th>原理简述</th></tr>
+          <tr><td>YCrCb 阈值<span class="inline-block text-xs font-semibold bg-amber-100 text-amber-600 px-1.5 rounded ml-1">传统</span></td><td class="warn">54.7%</td><td>0.499</td><td>0.633</td><td class="text-slate-400">Kovac 肤色模型固定 Cr/Cb 阈值，快但过度分割</td></tr>
+          <tr><td>GMM 肤色<span class="inline-block text-xs font-semibold bg-amber-100 text-amber-600 px-1.5 rounded ml-1">传统</span></td><td class="bad">93.7%</td><td>0.308</td><td>0.456</td><td class="text-slate-400">EM 学习肤色分布，112² 图中背景极少导致几乎全判前景</td></tr>
+          <tr><td>GrabCut<span class="inline-block text-xs font-semibold bg-amber-100 text-amber-600 px-1.5 rounded ml-1">传统</span></td><td>28.9%</td><td>—（参考）</td><td>—（参考）</td><td class="text-slate-400">图割迭代优化能量函数，边界最优，伪标签来源</td></tr>
+          <tr><td>Watershed<span class="inline-block text-xs font-semibold bg-amber-100 text-amber-600 px-1.5 rounded ml-1">传统</span></td><td>31.3%</td><td>0.254</td><td>0.332</td><td class="text-slate-400">距离变换+标记分水岭，低纹理区域边界粗糙</td></tr>
+          <tr><td><strong>ResUNet</strong><span class="inline-block text-xs font-semibold bg-blue-100 text-blue-600 px-1.5 rounded ml-1">DL</span></td><td class="best">28.9%</td><td class="best">0.855</td><td class="best">0.877</td><td style="color:#059669">语义分割，自动学习多尺度特征，全面最优</td></tr>
+        </table>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">IoU vs GrabCut 对比（越高越好，GrabCut 为参考基准）</div>
+        <canvas id="cIoU" height="180"></canvas>
+      </div>
+    </div>
+
+    <div x-show="tab==='config'" x-cloak>
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 class="font-semibold text-slate-700 mb-4">ResUNet 训练配置详情</h3>
+        <table>
+          <tr><th>参数</th><th>值</th><th>说明</th></tr>
+          <tr><td>编码器骨干</td><td>ResNet-18</td><td>ImageNet 预训练，迁移学习加速收敛</td></tr>
+          <tr><td>解码器结构</td><td>U-Net 跳跃连接</td><td>4级上采样，逐步恢复至 112×112 分辨率</td></tr>
+          <tr><td>伪标签来源</td><td>GrabCut 自动生成</td><td>无需人工标注，弱监督学习</td></tr>
+          <tr><td>损失函数</td><td>0.5×BCE + 0.5×Dice Loss</td><td>BCE 稳定梯度，Dice 关注前景重叠</td></tr>
+          <tr><td>优化器</td><td>Adam lr=1e-4</td><td>+ CosineAnnealingLR 余弦退火，后期精细收敛</td></tr>
+          <tr><td>Batch size</td><td>16（MPS/CUDA），4（CPU）</td><td>CPU 模式自动降低防止内存溢出</td></tr>
+          <tr><td>数据增强</td><td>随机水平翻转 + 亮度扰动 ±20</td><td>提升模型对光照变化的鲁棒性</td></tr>
+          <tr><td>最优 Epoch</td><td class="best">17 / 20（val Dice=0.8729）</td><td>验证集 Dice epoch 17 后轻微回落，保存最优</td></tr>
+          <tr><td>训练时间</td><td>约 22 分钟</td><td>Apple M3 MPS 加速（CPU 需数小时）</td></tr>
+          <tr><td>总参数量</td><td>~13.1M</td><td>ResNet-18 编码器 ~11.2M + 解码器 ~1.9M</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="fu mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">五种方法分割效果对比</p>
+      <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <img src="../docs/figures/fig5_segmentation_compare.png" alt="分割方法对比" class="w-full object-contain max-h-56">
+        <p class="text-xs text-slate-400 text-center py-2 bg-slate-50 border-t border-slate-100">原图 | YCrCb | GMM | GrabCut | Watershed（从左至右）</p>
+      </div>
+    </div>
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ResUNet vs GrabCut 伪标签对比</p>
+      <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <img src="../docs/figures/plot_seg_dl_compare.png" alt="ResUNet分割对比" class="w-full object-contain max-h-56">
+        <p class="text-xs text-slate-400 text-center py-2 bg-slate-50 border-t border-slate-100">左：GrabCut 伪标签 | 右：ResUNet 预测（边界更平滑）</p>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="baseline" class="mb-16 border-t border-slate-200 pt-12">
+  <h2 class="fu text-2xl font-bold mb-1"><span class="text-blue-600">#3</span> 基线人脸识别</h2>
+  <p class="fu text-slate-500 text-sm mb-6">InsightFace ArcFace R50 · 512-d 余弦相似度检索 · Gallery=1680 / Query=7484 · Top-1=92.65%</p>
+  <p class="fu text-slate-600 text-sm mb-6 leading-relaxed">
+    ArcFace 将人脸编码为 <strong class="text-slate-800">512维 L2归一化向量</strong>，识别时通过矩阵乘法计算余弦相似度，取最高分身份。
+    本阶段建立干净人脸的基准，为遮挡实验提供对比。
+    <strong class="text-slate-800">上采样策略</strong>：将输入从 112×112 上采样至 320×320 后，关键点检测成功率从 12% 跃升至 96.9%，是后续遮挡合成的关键前提。
+  </p>
+  <div class="fu grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <h3 class="font-semibold text-slate-700 mb-4">识别流程</h3>
+      <table>
+        <tr><th>步骤</th><th>说明</th></tr>
+        <tr><td>特征提取</td><td>ArcFace R50 → 512-d L2 归一化向量</td></tr>
+        <tr><td>Gallery 构建</td><td>1680 身份各取第1张 → (1680,512) 矩阵</td></tr>
+        <tr><td>余弦检索</td><td>矩阵乘法 G_norm @ q_norm，单张约 0.1ms</td></tr>
+        <tr><td>决策</td><td>argmax 取最高相似度对应身份</td></tr>
+      </table>
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="stat-card"><span class="stat-val" style="color:#059669">92.65%</span><div class="stat-lbl">Top-1 准确率</div></div>
+        <div class="stat-card"><span class="stat-val">6,934</span><div class="stat-lbl">正确匹配数</div></div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">关键点检测率 vs 输入尺寸（上采样策略，绿点为采用值）</div>
+      <canvas id="cScale" height="220"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ===== S5 SYNTHESIS ===== -->
+<section id="synthesis" class="mb-16 border-t border-slate-200 pt-12">
+  <h2 class="fu text-2xl font-bold mb-1"><span class="text-blue-600">#4</span> 遮挡数据合成</h2>
+  <p class="fu text-slate-500 text-sm mb-6">InsightFace 5-kps 关键点 + Alpha Blending · 三类遮挡 × 7484 = 22,452 张合成图</p>
+  <p class="fu text-slate-600 text-sm mb-6 leading-relaxed">
+    用 InsightFace 的 5 个关键点定位锚点，将预制遮挡素材通过
+    <strong class="text-slate-800">Alpha 通道融合</strong>叠加到对应位置，生成自然的遮挡人脸图像。
+    合成的 22,452 张图像覆盖水杯、普通眼镜、墨镜三类，构成实验组 B 和 C 的测试集。
+  </p>
+  <div class="fu grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <h3 class="font-semibold text-slate-700 mb-4">合成策略</h3>
+      <table>
+        <tr><th>遮挡类型</th><th>锚点</th><th>素材</th><th>数量</th></tr>
+        <tr><td>水杯（cup）</td><td>左右嘴角中点</td><td>18 张</td><td>7,484</td></tr>
+        <tr><td>普通眼镜</td><td>双眼中点</td><td>20 张</td><td>7,484</td></tr>
+        <tr><td>墨镜</td><td>双眼中点</td><td>20 张</td><td>7,484</td></tr>
+      </table>
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="stat-card"><span class="stat-val" style="color:#059669">96.9%</span><div class="stat-lbl">关键点检测成功率</div></div>
+        <div class="stat-card"><span class="stat-val" style="color:#64748b">72 min</span><div class="stat-lbl">CPU 批量耗时</div></div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">三类遮挡数量分布（各 7,484 张）</div>
+      <canvas id="cSynth" height="220"></canvas>
+    </div>
+  </div>
+  <div class="fu mt-6">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">合成遮挡图像示例（水杯 / 眼镜 / 墨镜）</p>
+    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <img src="../docs/figures/demo_occlusion_montage.png" alt="遮挡合成示例" class="w-full object-contain max-h-64">
+      <p class="text-xs text-slate-400 text-center py-2 bg-slate-50 border-t border-slate-100">Alpha Blending 合成效果 — 自然融合，保留人脸光影纹理</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== S6 CASCADE ===== -->
+<section id="cascade" class="mb-16 border-t border-slate-200 pt-12">
+  <h2 class="fu text-2xl font-bold mb-1"><span class="text-blue-600">#5</span> 级联识别实验</h2>
+  <p class="fu text-slate-500 text-sm mb-6">三组对照（A/B/C）+ 三轮策略迭代（v1→v2→v3） · 全量 22,452 张遮挡图像测试</p>
+
+  <!-- A/B/C 实验设计说明 -->
+  <div class="fu mb-8">
+    <h3 class="font-semibold text-slate-700 mb-3">实验设计：三组对照（单一变量原则）</h3>
+    <p class="text-slate-600 text-sm mb-4 leading-relaxed">
+      三组实验模型、数据集、预处理流程完全一致，<strong class="text-slate-800">仅识别策略不同</strong>，
+      通过控制变量精确量化"遮挡本身的代价"（A→B）和"级联优化策略的效果"（B→C）。
+    </p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+        <div class="text-xs font-bold text-green-700 uppercase tracking-wide mb-2">A 组 · 基线组</div>
+        <div class="text-xl font-bold text-green-700 mb-2">92.65%</div>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          <strong>输入：</strong>干净无遮挡人脸（原始预处理图）<br>
+          <strong>策略：</strong>直接 ArcFace 全脸识别<br>
+          <strong>意义：</strong>理想场景下的性能上界，无任何遮挡干扰
+        </p>
+      </div>
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div class="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">B 组 · 遮挡对照组</div>
+        <div class="text-xl font-bold text-blue-700 mb-2">89.11%</div>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          <strong>输入：</strong>合成遮挡人脸图像（22,452 张）<br>
+          <strong>策略：</strong>原始全脸 ArcFace，无任何优化<br>
+          <strong>意义：</strong>量化遮挡影响的性能下界（A−B=3.54pp）
+        </p>
+      </div>
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div class="text-xs font-bold text-amber-700 uppercase tracking-wide mb-2">C 组 · 优化实验组</div>
+        <div class="text-xl font-bold text-amber-700 mb-2">v1/v2/v3 三版</div>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          <strong>输入：</strong>与 B 完全相同的遮挡图像<br>
+          <strong>策略：</strong>两级级联识别（动态路由）<br>
+          <strong>意义：</strong>验证级联优化策略的实际效果
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 级联逻辑流程图 -->
+  <div class="fu mb-8">
+    <h3 class="font-semibold text-slate-700 mb-3">两级级联识别逻辑（L1 → L2 动态路由）</h3>
+    <p class="text-slate-600 text-sm mb-4 leading-relaxed">
+      级联策略的核心是<strong class="text-slate-800">置信度路由机制</strong>：
+      先做全脸 ArcFace 识别得到余弦相似度分数 s，根据 s 与阈值的比较决定是否切换到局部眼周分支。
+      理论上遮挡图像 s 偏低，可以借助眼周局部特征弥补；实验证明该假设不成立。
+    </p>
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <div class="flex flex-col items-center gap-0 text-sm">
+        <div class="bg-blue-600 text-white rounded-lg px-5 py-2 font-semibold text-sm">输入：遮挡人脸图像 112×112</div>
+        <div class="w-px h-5 bg-slate-300"></div>
+        <div class="bg-slate-100 border border-slate-300 rounded-lg px-5 py-2 text-slate-700 text-sm font-medium">L1：全脸 ArcFace 提取特征 → 余弦相似度 s</div>
+        <div class="w-px h-5 bg-slate-300"></div>
+        <div class="bg-slate-50 border-2 border-blue-300 rounded-xl px-6 py-3 text-slate-700 text-sm text-center">
+          <span class="font-bold text-blue-700">判断 s 与阈值 L1_HIGH 的关系</span>
+        </div>
+        <div class="flex gap-12 mt-0">
+          <div class="flex flex-col items-center">
+            <div class="w-px h-5 bg-green-400"></div>
+            <div class="text-xs text-green-600 font-semibold mb-1">s &gt; L1_HIGH（高置信）</div>
+            <div class="bg-green-100 border border-green-300 rounded-lg px-4 py-2 text-green-800 text-xs font-medium">直接输出 L1 全脸结果</div>
+          </div>
+          <div class="flex flex-col items-center">
+            <div class="w-px h-5 bg-amber-400"></div>
+            <div class="text-xs text-amber-600 font-semibold mb-1">L1_LOW ≤ s ≤ L1_HIGH（中等）</div>
+            <div class="bg-amber-100 border border-amber-300 rounded-lg px-4 py-2 text-amber-800 text-xs font-medium">L2：裁剪眼周区域 → 重新检索</div>
+          </div>
+          <div class="flex flex-col items-center">
+            <div class="w-px h-5 bg-red-400"></div>
+            <div class="text-xs text-red-600 font-semibold mb-1">s &lt; L1_LOW（低置信）</div>
+            <div class="bg-red-100 border border-red-300 rounded-lg px-4 py-2 text-red-800 text-xs font-medium">拒识（unknown）</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="fu text-slate-600 text-sm mb-6 leading-relaxed">
+    <strong class="text-slate-800">为什么失败？</strong>
+    ArcFace 基于完整 112×112 对齐人脸图像训练，眼周局部裁剪后输入给检测器时，
+    人脸尺度过小导致检测失败，退化为直接提取局部区域特征，特征分布与训练数据完全不匹配。
+    此外，戴眼镜/墨镜时眼周区域本身就是遮挡物，L2 分支反而使情况更差。
+  </p>
+
+  <!-- v1/v2/v3 迭代卡片 -->
+  <div class="fu mb-6">
+    <h3 class="font-semibold text-slate-700 mb-3">三轮策略迭代详解</h3>
+    <div class="flex gap-3 flex-wrap">
+      <div class="iter-card border-2 border-red-200 flex-1 min-w-64">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">C v1 · L1_HIGH = 0.8</div>
+          <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-semibold">失败</span>
+        </div>
+        <div class="text-3xl font-bold text-red-600 mb-3">12.52%</div>
+        <div class="space-y-2 text-xs text-slate-600 leading-relaxed">
+          <p><strong class="text-slate-700">策略：</strong>余弦分数 &gt; 0.8 走全脸，0.4~0.8 走眼周 L2，&lt; 0.4 拒识</p>
+          <p><strong class="text-slate-700">问题根因：</strong>遮挡图像余弦分数普遍低于 0.8，约 <strong>87% 的图像</strong>被强制路由到 L2 眼周分支</p>
+          <p><strong class="text-slate-700">L2 为何失败：</strong>眼周裁剪后图像尺寸过小，InsightFace 检测器失败，退化为直接提取局部像素特征，与 ArcFace 训练分布完全不匹配</p>
+          <p><strong class="text-slate-700">墨镜/眼镜场景：</strong>L2 裁剪的恰好是遮挡物区域，信息量为零</p>
+        </div>
+        <div class="mt-3 pt-3 border-t border-red-100">
+          <div class="grid grid-cols-3 gap-2 text-center text-xs">
+            <div><div class="font-bold text-red-600">11.58%</div><div class="text-slate-400">水杯</div></div>
+            <div><div class="font-bold text-red-600">11.89%</div><div class="text-slate-400">眼镜</div></div>
+            <div><div class="font-bold text-red-600">14.09%</div><div class="text-slate-400">墨镜</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="iter-card border-2 border-amber-200 flex-1 min-w-64">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">C v2 · L1_HIGH = 0.5 + best-of-two</div>
+          <span class="text-xs bg-amber-100 text-amber-600 px-2 py-0.5 rounded font-semibold">改进但不足</span>
+        </div>
+        <div class="text-3xl font-bold text-amber-600 mb-3">48.35%</div>
+        <div class="space-y-2 text-xs text-slate-600 leading-relaxed">
+          <p><strong class="text-slate-700">策略变化：</strong>阈值从 0.8 降至 0.5，减少进入 L2 的比例；输出时取 L1 和 L2 中<strong>分数更高的结果</strong>（best-of-two）</p>
+          <p><strong class="text-slate-700">为何提升：</strong>更多图像留在 L1 全脸分支；best-of-two 在 L2 比 L1 更差时自动回退到 L1</p>
+          <p><strong class="text-slate-700">仍然不足的原因：</strong>约一半图像仍进 L2 分支，L2 特征质量问题未根本解决；48.35% 远低于 B 的 89.11%</p>
+          <p><strong class="text-slate-700">眼镜类型表现最好：</strong>54.52%，因为眼周以外的区域（鼻、口）仍有特征</p>
+        </div>
+        <div class="mt-3 pt-3 border-t border-amber-100">
+          <div class="grid grid-cols-3 gap-2 text-center text-xs">
+            <div><div class="font-bold text-amber-600">42.04%</div><div class="text-slate-400">水杯</div></div>
+            <div><div class="font-bold text-amber-600">54.52%</div><div class="text-slate-400">眼镜</div></div>
+            <div><div class="font-bold text-amber-600">48.48%</div><div class="text-slate-400">墨镜</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="iter-card border-2 border-green-200 flex-1 min-w-64">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">C v3 · L1_HIGH = −1（禁用 L2）</div>
+          <span class="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded font-semibold">当前最优</span>
+        </div>
+        <div class="text-3xl font-bold text-green-600 mb-3">89.11%</div>
+        <div class="space-y-2 text-xs text-slate-600 leading-relaxed">
+          <p><strong class="text-slate-700">策略：</strong>设 L1_HIGH = −1，由于余弦相似度值域为 [−1, 1]，s &gt; −1 恒成立，L2 分支永远不触发</p>
+          <p><strong class="text-slate-700">等价关系：</strong>数学上等价于纯全脸识别（= B 策略），两组数值精确相等</p>
+          <p><strong class="text-slate-700">工程意义：</strong>v3 = B 验证了级联代码逻辑正确；若有 bug，v3 不会等于 B，是对"L2 禁用逻辑"的单元测试</p>
+          <p><strong class="text-slate-700">核心结论：</strong>不微调 ArcFace 的前提下，局部裁剪无法改善，全脸识别即最优</p>
+        </div>
+        <div class="mt-3 pt-3 border-t border-green-100">
+          <div class="grid grid-cols-3 gap-2 text-center text-xs">
+            <div><div class="font-bold text-green-600">87.72%</div><div class="text-slate-400">水杯</div></div>
+            <div><div class="font-bold text-green-600">90.69%</div><div class="text-slate-400">眼镜</div></div>
+            <div><div class="font-bold text-green-600">88.79%</div><div class="text-slate-400">墨镜</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="fu grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+    <div class="chart-wrap">
+      <div class="chart-title">三轮迭代整体准确率（全量实验）</div>
+      <canvas id="cIter" height="200"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">B vs C v2 — 按遮挡类型细分</div>
+      <canvas id="cPerType" height="200"></canvas>
+    </div>
+  </div>
+  <div class="fu bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <h3 class="font-semibold text-slate-700 mb-4">全量实验数据汇总</h3>
+    <table>
+      <tr><th>实验组</th><th>水杯</th><th>眼镜</th><th>墨镜</th><th>整体</th><th>说明</th></tr>
+      <tr><td>A 基线（干净）</td><td>—</td><td>—</td><td>—</td><td class="best">92.65%</td><td class="text-slate-400">无遮挡上界</td></tr>
+      <tr><td>B 遮挡 Naive</td><td>87.72%</td><td class="best">90.69%</td><td>88.79%</td><td class="best">89.11%</td><td class="text-slate-400">无优化基准</td></tr>
+      <tr><td>C v1（L1=0.8）</td><td>11.58%</td><td>11.89%</td><td>14.09%</td><td class="bad">12.52%</td><td style="color:#dc2626">阈值过高崩溃</td></tr>
+      <tr><td>C v2（L1=0.5）</td><td>42.04%</td><td>54.52%</td><td>48.48%</td><td class="warn">48.35%</td><td style="color:#d97706">局部特征不足</td></tr>
+      <tr><td>C v3（L1=-1）</td><td>87.72%</td><td class="best">90.69%</td><td>88.79%</td><td class="best">89.11%</td><td style="color:#059669">= B，当前最优</td></tr>
+    </table>
+  </div>
+  <div class="fu mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">级联策略三轮迭代演化</p>
+      <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <img src="../docs/figures/fig3_cascade_evolution.png" alt="级联迭代演化" class="w-full object-contain max-h-56">
+        <p class="text-xs text-slate-400 text-center py-2 bg-slate-50 border-t border-slate-100">v1→v2→v3 策略迭代与准确率变化趋势</p>
+      </div>
+    </div>
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">全量 vs 50样本消融对比</p>
+      <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <img src="../docs/figures/plot_cascade_fullvs50s.png" alt="全量vs50样本" class="w-full object-contain max-h-56">
+        <p class="text-xs text-slate-400 text-center py-2 bg-slate-50 border-t border-slate-100">50样本消融（左）与全量实验（右）结果一致性验证</p>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="conclusion" class="mb-16 border-t border-slate-200 pt-12">
+  <h2 class="fu text-2xl font-bold mb-1"><span class="text-blue-600">#6</span> 结论与展望</h2>
+  <p class="fu text-slate-500 text-sm mb-6">ArcFace 内置鲁棒性优异 · 无微调条件下局部裁剪策略无法改善准确率</p>
+  <div class="fu chart-wrap mb-8 max-w-xl">
+    <div class="chart-title">完整实验总览雷达图：分割 / 识别 / 级联五维度</div>
+    <canvas id="cSummary" height="200"></canvas>
+  </div>
+  <div class="fu grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="bg-white border-l-4 border-blue-500 rounded-r-xl p-5 shadow-sm">
+      <h4 class="font-bold text-slate-800 mb-2">ArcFace 内置遮挡鲁棒性</h4>
+      <p class="text-sm text-slate-500 leading-relaxed">干净基线 92.65% → 三类遮挡场景 89.11%，仅下降 3.54pp。轻度遮挡对大规模预训练模型影响有限，体现了深度度量学习的内置鲁棒性。</p>
+    </div>
+    <div class="bg-white border-l-4 border-red-400 rounded-r-xl p-5 shadow-sm">
+      <h4 class="font-bold text-slate-800 mb-2">局部裁剪策略失效</h4>
+      <p class="text-sm text-slate-500 leading-relaxed">ArcFace 基于完整 112×112 对齐人脸训练，眼周局部裁剪导致特征分布偏移，v1 仅 12.52%。不微调模型时任何局部裁剪策略均不可用。</p>
+    </div>
+    <div class="bg-white border-l-4 border-green-500 rounded-r-xl p-5 shadow-sm">
+      <h4 class="font-bold text-slate-800 mb-2">ResUNet 分割全面最优</h4>
+      <p class="text-sm text-slate-500 leading-relaxed">弱监督（GrabCut 伪标签）训练，val Dice=0.8729，IoU=0.855，边界平滑度远超四种传统算法。无需人工标注实现高质量分割。</p>
+    </div>
+    <div class="bg-white border-l-4 border-amber-400 rounded-r-xl p-5 shadow-sm">
+      <h4 class="font-bold text-slate-800 mb-2">未来改进方向</h4>
+      <p class="text-sm text-slate-500 leading-relaxed">① 在 22,452 张遮挡数据集上微调 ArcFace；② 引入遮挡感知注意力机制；③ LaMa/SD 图像修复后再识别；④ 采集真实课堂数据集验证泛化性。</p>
+    </div>
+  </div>
+  <div class="fu mt-6">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">各实验组准确率汇总</p>
+    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <img src="../docs/figures/fig1_accuracy_overview.png" alt="准确率总览" class="w-full object-contain max-h-64">
+      <p class="text-xs text-slate-400 text-center py-2 bg-slate-50 border-t border-slate-100">A / B / C 三组全量实验结果 — 三类遮挡类型细分对比</p>
+    </div>
+  </div>
+</section>
+</div><!-- end #content -->
+
+<script src="charts.js"></script>
+</body>
+</html>

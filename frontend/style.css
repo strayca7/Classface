@@ -1,0 +1,101 @@
+:root{
+  --bg:#f8faff;--card:#fff;--border:#e2e8f0;
+  --accent:#2563eb;--sky:#0ea5e9;--green:#059669;--orange:#d97706;--red:#dc2626;
+  --text:#1e293b;--muted:#64748b;--r:12px;
+  --sh:0 2px 16px rgba(37,99,235,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"PingFang SC","Microsoft YaHei","Inter",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:15px}
+
+/* ── nav ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:4px;padding:0 32px;height:56px;box-shadow:0 1px 8px rgba(0,0,0,.05)}
+.brand{font-size:15px;color:var(--accent);font-weight:700;margin-right:20px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.brand svg{flex-shrink:0}
+nav a{color:var(--muted);text-decoration:none;font-size:13px;padding:6px 12px;border-radius:6px;transition:.2s;white-space:nowrap}
+nav a:hover,nav a.active{color:var(--accent);background:#eff6ff;font-weight:500}
+
+/* ── layout ── */
+main{padding-top:56px}
+section{padding:72px 40px;max-width:1100px;margin:0 auto}
+section+section{border-top:1px solid var(--border)}
+h2{font-size:26px;font-weight:700;margin-bottom:6px}
+h2 .n{color:var(--accent)}
+.sub{color:var(--muted);font-size:14px;margin-bottom:32px}
+h3{font-size:16px;font-weight:600;margin:24px 0 10px;color:var(--text)}
+
+/* ── hero ── */
+.hero{background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 55%,#f0f9ff 100%);border-radius:16px;padding:32px 36px;margin-bottom:32px;border:1px solid #bfdbfe}
+
+/* ── cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:var(--sh)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+
+/* ── pipeline ── */
+.pipeline{display:flex;align-items:center;overflow-x:auto;padding:8px 0 4px;gap:0}
+.pipe-step{display:flex;align-items:center}
+.pb{background:#fff;border:2px solid var(--border);border-radius:var(--r);padding:14px 16px;min-width:128px;text-align:center;transition:.2s;cursor:default}
+.pb:hover{border-color:var(--accent);box-shadow:var(--sh);transform:translateY(-2px)}
+.pb .n{font-size:10px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:3px}
+.pb .nm{font-size:13px;font-weight:600;margin-bottom:3px}
+.pb .d{font-size:11px;color:var(--muted);line-height:1.4}
+.pa{color:var(--accent);font-size:18px;padding:0 6px;opacity:.35;flex-shrink:0}
+
+/* ── stats ── */
+.sr{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+.st{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;text-align:center;box-shadow:var(--sh);min-width:100px;transition:.2s}
+.st:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(37,99,235,.12)}
+.st .v{font-size:24px;font-weight:700;color:var(--accent);display:block;line-height:1.2}
+.st .l{font-size:11px;color:var(--muted)}
+.st.g .v{color:var(--green)}
+.st.o .v{color:var(--orange)}
+.st.r .v{color:var(--red)}
+
+/* ── table ── */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f8faff;color:var(--muted);font-weight:600;padding:10px 14px;text-align:left;border-bottom:2px solid var(--border)}
+td{padding:9px 14px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8faff}
+.best{color:var(--green);font-weight:700}
+.bad{color:var(--red);font-weight:700}
+.warn{color:var(--orange);font-weight:700}
+
+/* ── iteration cards ── */
+.iter{display:flex;gap:12px;margin:16px 0}
+.is{flex:1;background:#fff;border:2px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh);transition:.2s}
+.is:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(37,99,235,.1)}
+.is .v{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}
+.is .a{font-size:26px;font-weight:700;line-height:1;margin-bottom:6px}
+.is .d{font-size:12px;color:var(--muted);line-height:1.5}
+.is.fail{border-color:#fecaca}.is.fail .a{color:var(--red)}
+.is.warn{border-color:#fde68a}.is.warn .a{color:var(--orange)}
+.is.ok{border-color:#a7f3d0}.is.ok .a{color:var(--green)}
+
+/* ── tag ── */
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;margin-left:6px;vertical-align:middle}
+.tag.dl{background:#dbeafe;color:var(--accent)}
+.tag.trad{background:#fef3c7;color:var(--orange)}
+
+/* ── chart wrapper ── */
+.cw{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--sh)}
+.ct{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:12px;text-align:center;letter-spacing:.3px}
+
+/* ── conclusion ── */
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.ci{background:#fff;border-left:4px solid var(--accent);border-radius:0 var(--r) var(--r) 0;padding:16px 20px;box-shadow:var(--sh)}
+.ci h4{font-size:14px;font-weight:700;margin-bottom:5px;color:var(--text)}
+.ci p{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* ── animations ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.fu{opacity:0;transition:opacity .1s}
+.fu.vis{animation:fadeUp .5s ease both}
+
+@media(max-width:800px){
+  .g2,.g3,.cg{grid-template-columns:1fr}
+  .iter{flex-direction:column}
+  section{padding:48px 20px}
+  nav{padding:0 16px;overflow-x:auto;gap:2px}
+  nav a{padding:5px 8px}
+}
