@@ -504,6 +504,8 @@ InsightFace 5-kps 布局：
 
 ### 6.5 合成结果
 
+![遮挡合成样例展示](figures/demo_occlusion_montage.png)
+
 **全量运行**（7,484 query × 3 类型）：
 
 | 指标 | 值 |
@@ -636,6 +638,8 @@ glasses/sunglasses 锚点 = 双眼中点
 即使对 cup 类型（眼周应该干净），结果也差（cup C=17.45%），原因是命中原因一和二。
 
 ### 7.6 级联策略优化（多轮迭代）
+
+![级联策略迭代演进](figures/fig3_cascade_evolution.png)
 
 #### 迭代 1：降低阈值 + best-of-two（v2，L1_HIGH=0.5）
 
@@ -780,7 +784,11 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 
 ## 八、实验结果汇总
 
+![实验总览仪表盘](figures/fig0_dashboard.png)
+
 ### 8.1 各阶段耗时
+
+![各阶段流水线耗时指标](figures/fig4_pipeline_metrics.png)
 
 | 阶段 | 命令 | 耗时 |
 |------|------|------|
@@ -795,6 +803,10 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 
 ### 8.2 识别准确率对比
 
+![识别准确率总览](figures/fig1_accuracy_overview.png)
+
+![各遮挡类型 B vs C 对比](figures/fig2_per_type_bc.png)
+
 | 测试集 | 策略 | 准确率 | 备注 |
 |--------|------|--------|------|
 | 干净图像（全量） | ArcFace 全脸 | **92.65%** | 基线 |
@@ -806,6 +818,8 @@ pred = cosine_top1(emb, gallery)   # 与 B Naive 完全一致
 > 数据来源：基线 → `data/results/eval_baseline_full.txt`；v1/v3 全量 → `eval_compare_v1_full.txt` / `eval_compare_v3_full.txt`
 
 ### 8.3 图像分割结果（五种方法对比）
+
+![五种分割方法可视化对比](figures/fig5_segmentation_compare.png)
 
 | 方法 | 前景占比均值 | IoU vs GrabCut | Dice vs GrabCut | 说明 |
 |------|------------|--------------|----------------|------|
